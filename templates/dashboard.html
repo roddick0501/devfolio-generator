@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f5f7; margin: 0; padding: 40px; color: #1d1d1f; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        h1 { font-weight: 700; letter-spacing: -1px; }
+        .btn { background: #0071e3; color: white; text-decoration: none; padding: 12px 24px; border-radius: 50px; font-weight: 500; font-size: 14px; transition: 0.2s; }
+        .btn:hover { background: #0077ED; transform: scale(1.05); }
+        .btn-outline { background: transparent; color: #1d1d1f; border: 1px solid #d2d2d7; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; }
+        
+        .card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); transition: transform 0.2s; display: flex; flex-direction: column; justify-content: space-between; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+        
+        .actions { margin-top: 20px; display: flex; gap: 8px; }
+        .action-btn { font-size: 12px; text-decoration: none; padding: 8px 14px; border-radius: 8px; background: #f5f5f7; color: #1d1d1f; font-weight: 500; }
+        .action-btn:hover { background: #e5e5ea; }
+        .delete { color: #ff3b30; background: #fff2f2; }
+        .delete:hover { background: #ffe5e5; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>My Portfolios</h1>
+        <div>
+            <a href="{{ url_for('create') }}" class="btn">+ New Portfolio</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-outline" style="margin-left: 10px;">Log Out</a>
+        </div>
+    </div>
+
+    <div class="grid">
+        {% for p in portfolios %}
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+                <div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <h3 style="margin:0;">{{ p.name }}</h3>
+                        {% if p.theme_preset == 'cyberpunk' %}<span style="width:8px; height:8px; background:#00ff41; border-radius:50%;"></span>{% endif %}
+                        {% if p.theme_preset == 'sunset' %}<span style="width:8px; height:8px; background:#ff4500; border-radius:50%;"></span>{% endif %}
+                        {% if p.theme_preset == 'midnight' %}<span style="width:8px; height:8px; background:#38bdf8; border-radius:50%;"></span>{% endif %}
+                    </div>
+                    <span style="color:#86868b; font-size:14px;">{{ p.role }}</span>
+                </div>
+                
+                <div style="text-align:center;">
+                    <img src="{{ url_for('qr_code', p_id=p.id) }}" style="width:60px; height:60px; border-radius:8px; border:1px solid #e5e5e5;">
+                </div>
+            </div>
+            
+            <div class="actions">
+                <a href="{{ url_for('preview', p_id=p.id) }}" class="action-btn">Preview</a>
+                <a href="{{ url_for('download', p_id=p.id) }}" class="action-btn">Download</a>
+                <a href="{{ url_for('delete', p_id=p.id) }}" class="action-btn delete" onclick="return confirm('Delete this portfolio?')">Delete</a>
+            </div>
+        </div>
+        {% else %}
+        <div style="text-align:center; grid-column: 1/-1; color: #86868b; padding-top: 60px;">
+            <h2>No portfolios yet.</h2>
+            <p>Click "New Portfolio" to start building.</p>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Studio</title>
+    <style>
+        :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: #1d1d1f; padding: 40px 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 700px; }
+        header { text-align: center; margin-bottom: 30px; }
+        h1 { font-weight: 700; margin: 10px 0; }
+        .card { background: var(--card); border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); padding: 30px; margin-bottom: 20px; }
+        .label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #86868b; margin-bottom: 8px; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid #d2d2d7; border-radius: 10px; margin-bottom: 15px; background: #fbfbfd; font-family: inherit; box-sizing: border-box; }
+        input:focus { border-color: var(--primary); outline: 2px solid rgba(0,113,227,0.1); }
+        .theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .theme-opt { position: relative; cursor: pointer; }
+        .theme-opt input { position: absolute; opacity: 0; }
+        .theme-card { border: 2px solid #d2d2d7; border-radius: 12px; padding: 15px; text-align: center; transition: 0.2s; background: white; }
+        .theme-opt input:checked + .theme-card { border-color: var(--primary); background: #f0f8ff; box-shadow: 0 0 0 2px var(--primary); }
+        .btn-primary { width: 100%; background: var(--primary); color: white; padding: 16px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 16px; }
+        .row { display: flex; gap: 10px; }
+        .entry-box { background: #f5f5f7; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #e5e5e5; }
+        .btn-sec { background: #e8e8ed; padding: 8px 15px; border-radius: 8px; border: none; font-weight: 500; cursor: pointer; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <a href="{{ url_for('dashboard') }}" style="color:#86868b; text-decoration:none; font-size:14px;">&larr; Dashboard</a>
+        <h1>Portfolio Studio</h1>
+    </header>
+
+    <form method="POST" enctype="multipart/form-data">
+        
+        <div class="card">
+            <span class="label">Vibe</span>
+            <div class="theme-grid">
+                <label class="theme-opt"><input type="radio" name="theme_preset" value="cupertino" checked><div class="theme-card"><h4>🍏 Cupertino</h4></div></label>
+                <label class="theme-opt"><input type="radio" name="theme_preset" value="cyberpunk"><div class="theme-card"><h4>👾 Cyberpunk</h4></div></label>
+                <label class="theme-opt"><input type="radio" name="theme_preset" value="midnight"><div class="theme-card"><h4>🌌 Midnight</h4></div></label>
+                <label class="theme-opt"><input type="radio" name="theme_preset" value="sunset"><div class="theme-card"><h4>🌅 Sunset</h4></div></label>
+            </div>
+        </div>
+
+        <div class="card">
+            <span class="label">Identity</span>
+            <div class="row"><div style="flex:1"><input type="text" name="name" placeholder="Name" required></div><div style="flex:1"><input type="text" name="role" placeholder="Role" required></div></div>
+            <textarea name="bio" rows="3" placeholder="Short bio..." required></textarea>
+            <div class="row"><div style="flex:1"><span class="label">Photo</span><input type="file" name="profile_pic" accept="image/*"></div><div style="flex:1"><span class="label">Resume (PDF)</span><input type="file" name="resume" accept="application/pdf"></div></div>
+        </div>
+        
+        <div class="card">
+            <span class="label">Connect (Optional)</span>
+            <div class="row">
+                <div style="flex:1"><span class="label">Formspree ID</span><input type="text" name="formspree_id" placeholder="e.g. xnjkql"></div>
+                <div style="flex:1"><span class="label">Live URL (For QR)</span><input type="url" name="live_url" placeholder="e.g. mysite.netlify.app"></div>
+            </div>
+            <p style="font-size:11px; color:#86868b; margin-top:-10px;">Create a free form at formspree.io to enable the Contact form.</p>
+        </div>
+
+        <div class="card">
+            <span class="label">Socials & Skills</span>
+            <input type="text" name="skills" placeholder="Skills (e.g. Python, React)">
+            <div class="row"><div style="flex:1"><input type="email" name="email" placeholder="Email"></div><div style="flex:1"><input type="url" name="github" placeholder="GitHub"></div><div style="flex:1"><input type="url" name="linkedin" placeholder="LinkedIn"></div></div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span class="label">Experience</span><button type="button" class="btn-sec" onclick="addExp()">+ Add</button></div>
+            <div id="exp-container"></div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span class="label">Projects</span><button type="button" class="btn-sec" onclick="addProj()">+ Add</button></div>
+            <div id="proj-container"></div>
+        </div>
+
+        <button type="submit" class="btn-primary">Generate &rarr;</button>
+    </form>
+</div>
+
+<script>
+    function addExp() {
+        let d = document.createElement('div'); d.className='entry-box';
+        d.innerHTML = `<div class="row"><input style="flex:1" name="exp_company[]" placeholder="Company"><input style="flex:1" name="exp_duration[]" placeholder="Dates"></div><input name="exp_position[]" placeholder="Role"><textarea name="exp_desc[]" rows="2" placeholder="Description"></textarea>`;
+        document.getElementById('exp-container').appendChild(d);
+    }
+    function addProj() {
+        let d = document.createElement('div'); d.className='entry-box';
+        d.innerHTML = `<div class="row"><input style="flex:1" name="project_title[]" placeholder="Title"><input style="flex:1" name="project_tech[]" placeholder="Tech Stack"></div><textarea name="project_desc[]" rows="2" placeholder="Description"></textarea><input name="project_link[]" placeholder="URL">`;
+        document.getElementById('proj-container').appendChild(d);
+    }
+    addExp(); addProj();
+</script>
+</body>
+</html>

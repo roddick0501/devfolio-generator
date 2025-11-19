@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ p.name }}</title>
+    <meta name="description" content="{{ p.bio[:150] }}">
+
+    <style>
+        /* --- THEME VARS --- */
+        :root { --bg: #fff; --text: #1d1d1f; --text-sec: #86868b; --card: #f5f5f7; --border: #e5e5e5; --primary: #0071e3; --radius: 24px; --font: -apple-system, sans-serif; --bg-pat: none; }
+
+        [data-theme="cyberpunk"] { --bg:#0d0d0d; --bg-pat:linear-gradient(#1a1a1a 1px,transparent 1px),linear-gradient(90deg,#1a1a1a 1px,transparent 1px); --bg-size:40px 40px; --text:#e0e0e0; --text-sec:#a0a0a0; --card:#161616; --border:#333; --primary:#00ff41; --radius:4px; --font:'Courier New', monospace; }
+        [data-theme="midnight"] { --bg:#0f172a; --bg-pat:radial-gradient(#1e293b 1px,transparent 0); --bg-size:20px 20px; --text:#f8fafc; --text-sec:#94a3b8; --card:#1e293b; --border:#334155; --primary:#38bdf8; --radius:16px; --font:'Inter', sans-serif; }
+        [data-theme="sunset"] { --bg:#fff0f5; --bg-pat:linear-gradient(120deg,#fff0f5,#ffe4e1); --text:#4a0404; --text-sec:#8b4513; --card:#fff; --border:#ffd7d7; --primary:#ff4500; --radius:30px; --font:'Georgia', serif; }
+
+        /* --- STYLES --- */
+        body { margin:0; padding:0; font-family:var(--font); background-color:var(--bg); background-image:var(--bg-pat); background-size:var(--bg-size, auto); color:var(--text); line-height:1.6; padding-bottom:100px; }
+        .wrapper { max-width:800px; margin:0 auto; padding:0 20px; }
+        
+        .hero { padding:100px 0 60px 0; }
+        .avatar { width:120px; height:120px; border-radius:50%; object-fit:cover; margin-bottom:20px; border:4px solid var(--card); box-shadow:0 10px 30px rgba(0,0,0,0.2); }
+        h1 { font-size:3.5rem; margin:0 0 10px 0; letter-spacing:-1px; line-height:1.1; }
+        .role { color:var(--primary); font-size:1.2rem; font-weight:bold; text-transform:uppercase; letter-spacing:1px; }
+        .bio { color:var(--text-sec); font-size:1.1rem; margin-top:20px; max-width:600px; }
+
+        .skills { margin-top:30px; display:flex; flex-wrap:wrap; gap:10px; }
+        .pill { background:var(--card); border:1px solid var(--border); padding:6px 14px; border-radius:50px; font-size:0.9rem; color:var(--text); }
+        [data-theme="cyberpunk"] .pill { border-color:var(--primary); color:var(--primary); background:transparent; }
+
+        .sec-title { margin:80px 0 30px 0; font-size:1.5rem; font-weight:700; border-bottom:2px solid var(--border); padding-bottom:10px; display:inline-block; }
+        
+        .job { margin-bottom:40px; padding-left:20px; border-left:2px solid var(--border); position:relative; }
+        .job::before { content:''; position:absolute; left:-6px; top:5px; width:10px; height:10px; background:var(--primary); border-radius:50%; }
+        .job h3 { margin:0; font-size:1.2rem; }
+        .job span { font-size:0.9rem; color:var(--primary); font-weight:bold; }
+        .job p { margin-top:5px; color:var(--text-sec); }
+
+        .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:20px; }
+        .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:25px; transition:transform 0.2s; display:flex; flex-direction:column; }
+        .card:hover { transform:translateY(-5px); border-color:var(--primary); }
+        .card h3 { margin:10px 0; }
+        .card-link { margin-top:auto; text-decoration:none; color:var(--bg); background:var(--text); padding:10px 20px; border-radius:50px; align-self:flex-start; font-weight:bold; font-size:0.9rem; }
+        [data-theme="cyberpunk"] .card-link { background:var(--primary); color:black; }
+
+        .dl-btn { position:fixed; bottom:30px; right:30px; background:var(--primary); color:var(--bg); padding:15px 25px; border-radius:50px; text-decoration:none; font-weight:bold; box-shadow:0 10px 30px rgba(0,0,0,0.3); z-index:999; }
+        [data-theme="cyberpunk"] .dl-btn { color:black; }
+        
+        .resume-btn { display:inline-block; margin-top:20px; padding:10px 20px; border:1px solid var(--border); border-radius:50px; text-decoration:none; color:var(--text); font-weight:bold; }
+        .resume-btn:hover { background:var(--primary); color:var(--bg); border-color:var(--primary); }
+
+        .footer { margin-top:80px; padding-top:40px; border-top:1px solid var(--border); display:flex; gap:20px; }
+        .footer a { color:var(--text); text-decoration:none; opacity:0.7; }
+        .footer a:hover { opacity:1; color:var(--primary); }
+
+        input, textarea { width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); margin-bottom:15px; font-family:inherit; box-sizing:border-box; }
+    </style>
+</head>
+<body data-theme="{{ p.theme_preset }}">
+
+<div class="wrapper">
+    <div class="hero">
+        {% if p.profile_pic %}<img src="{{ p.profile_pic }}" class="avatar">{% endif %}
+        <h1>{{ p.name }}</h1>
+        <span class="role">{{ p.role }}</span>
+        <p class="bio">{{ p.bio }}</p>
+        {% if p.resume_data %}<a href="{{ p.resume_data }}" download="Resume.pdf" class="resume-btn">Download Resume ⬇</a>{% endif %}
+        <div class="skills">{% for s in skills %}<span class="pill">{{ s }}</span>{% endfor %}</div>
+    </div>
+
+    {% if p.experiences %}
+    <div class="sec-title">Experience</div>
+    {% for exp in p.experiences %}
+    <div class="job">
+        <h3>{{ exp.position }} @ {{ exp.company }}</h3>
+        <span>{{ exp.duration }}</span>
+        <p>{{ exp.desc }}</p>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if p.projects %}
+    <div class="sec-title">Projects</div>
+    <div class="grid">
+        {% for proj in p.projects %}
+        <div class="card">
+            <span style="font-size:0.8rem; color:var(--primary); font-weight:bold;">{{ proj.tech }}</span>
+            <h3>{{ proj.title }}</h3>
+            <p style="color:var(--text-sec);">{{ proj.desc }}</p>
+            {% if proj.link %}<a href="{{ proj.link }}" target="_blank" class="card-link">View Project</a>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="sec-title">Get in Touch</div>
+    {% if p.formspree_id %}
+    <form action="https://formspree.io/f/{{ p.formspree_id }}" method="POST" style="max-width:500px;">
+        <label style="font-size:0.9rem; font-weight:bold;">Email</label><input type="email" name="email" required>
+        <label style="font-size:0.9rem; font-weight:bold;">Message</label><textarea name="message" rows="4" required></textarea>
+        <button type="submit" style="background:var(--primary); color:var(--bg); padding:12px 24px; border:none; border-radius:50px; font-weight:bold; cursor:pointer;">Send &rarr;</button>
+    </form>
+    {% else %}
+    <p>Email me at <a href="mailto:{{ p.email }}" style="color:var(--primary);">{{ p.email }}</a></p>
+    {% endif %}
+
+    <div class="footer">
+        {% if p.github %}<a href="{{ p.github }}">GitHub</a>{% endif %}
+        {% if p.linkedin %}<a href="{{ p.linkedin }}">LinkedIn</a>{% endif %}
+    </div>
+</div>
+
+{% if preview %}
+<a href="{{ url_for('download', p_id=p.id) }}" class="dl-btn">Download Site ⬇</a>
+{% endif %}
+
+</body>
+</html>
