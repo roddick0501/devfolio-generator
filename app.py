@@ -7,8 +7,8 @@ import base64
 import qrcode # Requires: pip install qrcode[pil]
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'change-this-secret-key' 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///portfolios.db'
+app.config['SECRET_KEY'] = '5e7f1c0ef4d8d0a3a4ef32f838cf0ddccf7b3f62fa9d9f8af44a20c0a37425cb'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/portfolios.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 
