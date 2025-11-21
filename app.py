@@ -6,14 +6,21 @@ import io
 import base64
 import qrcode
 import os
+from dotenv import load_dotenv
+
+load_dotenv() 
 
 # --- APP SETUP ---
 app = Flask(__name__)
-# Set a proper secret key (ideally loaded from an environment variable)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_strong_fallback_secret_key') 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/portfolios.db'
+
+database_uri = os.environ.get('DATABASE_URL')
+if database_uri and database_uri.startswith("postgres://"):
+    database_uri = database_uri.replace("postgres://", "postgresql://", 1)
+
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'b42907f1d8325fda2d3fcd6917c2f910437602425099d321c9dab187b04d89a5y') 
+app.config['SQLALCHEMY_DATABASE_URI'] = database_uri or 'sqlite:///instance/portfolios.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # Limit file uploads to 16MB
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 
 db = SQLAlchemy(app)
 login_manager = LoginManager()
@@ -38,9 +45,8 @@ class Portfolio(db.Model):
     linkedin = db.Column(db.String(100))
     skills = db.Column(db.String(200))
     
-    # Themes & Customization (UPDATED)
     theme_preset = db.Column(db.String(50), default="cupertino") 
-    custom_accent_color = db.Column(db.String(7), nullable=True) # NEW: Stores HEX code
+    custom_accent_color = db.Column(db.String(7), nullable=True) # Stores HEX code
     
     # Files (Base64)
     profile_pic = db.Column(db.Text, nullable=True)
@@ -71,10 +77,11 @@ class Experience(db.Model):
     desc = db.Column(db.Text, nullable=True)
     portfolio_id = db.Column(db.Integer, db.ForeignKey('portfolio.id'), nullable=False)
 
+# --- DATABASE INITIALIZATION ---
 with app.app_context():
-    # Ensure instance folder exists for the SQLite database file
-    if not os.path.exists('instance'):
+    if 'sqlite' in app.config['SQLALCHEMY_DATABASE_URI'] and not os.path.exists('instance'):
         os.makedirs('instance')
+    
     db.create_all()
 
 @login_manager.user_loader
@@ -116,7 +123,6 @@ def logout(): logout_user(); return redirect(url_for('login'))
 @login_required
 def dashboard(): return render_template('dashboard.html', portfolios=current_user.portfolios)
 
-# --- GENERATOR & CRUD ROUTES ---
 
 @app.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -133,11 +139,10 @@ def create():
             f = request.files['resume']
             if f.filename and f.mimetype=='application/pdf': res_data = f"data:application/pdf;base64,{base64.b64encode(f.read()).decode('utf-8')}"
 
-        # Custom Color Logic (NEW)
+        # Custom Color Logic
         custom_color = None
         theme_preset = request.form['theme_preset']
         if theme_preset == 'custom':
-            # Capture the color from the picker input
             custom_color = request.form.get('custom_accent_color', '#0071e3')
         
         new_portfolio = Portfolio(
@@ -170,12 +175,10 @@ def delete(p_id):
     db.session.delete(p); db.session.commit()
     return redirect(url_for('dashboard'))
 
-# --- DOWNLOAD & PREVIEW ROUTES ---
 
 @app.route('/qr/<int:p_id>')
 def qr_code(p_id):
     p = Portfolio.query.get_or_404(p_id)
-    # Use live_url if available, else fallback to a placeholder or LinkedIn
     data = p.live_url if p.live_url else (p.linkedin if p.linkedin else "https://github.com")
     
     img = qrcode.make(data)
@@ -192,16 +195,13 @@ def preview(p_id):
     template_mode = True if 'preview' in request.path else False
     
     if not template_mode:
-        # Render the file for download (static HTML file)
         rendered = render_template('portfolio.html', p=p, skills=skills, preview=False)
         mem = io.BytesIO(); mem.write(rendered.encode('utf-8')); mem.seek(0)
         return send_file(mem, as_attachment=True, download_name=f"{p.name.replace(' ','_')}_portfolio.html", mimetype='text/html')
     
-    # Render the file for live preview
     return render_template('portfolio.html', p=p, skills=skills, preview=True)
 
 if __name__ == '__main__':
-    # Initialize database if running locally
     with app.app_context():
         db.create_all()
     app.run(debug=True)
