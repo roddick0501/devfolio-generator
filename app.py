@@ -4,13 +4,16 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from werkzeug.security import generate_password_hash, check_password_hash
 import io
 import base64
-import qrcode # Requires: pip install qrcode[pil]
+import qrcode
+import os
 
+# --- APP SETUP ---
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '5e7f1c0ef4d8d0a3a4ef32f838cf0ddccf7b3f62fa9d9f8af44a20c0a37425cb'
+# Set a proper secret key (ideally loaded from an environment variable)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_strong_fallback_secret_key') 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/portfolios.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # Limit file uploads to 16MB
 
 db = SQLAlchemy(app)
 login_manager = LoginManager()
@@ -35,8 +38,9 @@ class Portfolio(db.Model):
     linkedin = db.Column(db.String(100))
     skills = db.Column(db.String(200))
     
-    # Themes & Customization
+    # Themes & Customization (UPDATED)
     theme_preset = db.Column(db.String(50), default="cupertino") 
+    custom_accent_color = db.Column(db.String(7), nullable=True) # NEW: Stores HEX code
     
     # Files (Base64)
     profile_pic = db.Column(db.Text, nullable=True)
@@ -68,13 +72,16 @@ class Experience(db.Model):
     portfolio_id = db.Column(db.Integer, db.ForeignKey('portfolio.id'), nullable=False)
 
 with app.app_context():
+    # Ensure instance folder exists for the SQLite database file
+    if not os.path.exists('instance'):
+        os.makedirs('instance')
     db.create_all()
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- ROUTES ---
+# --- AUTH ROUTES ---
 
 @app.route('/')
 def home():
@@ -109,18 +116,7 @@ def logout(): logout_user(); return redirect(url_for('login'))
 @login_required
 def dashboard(): return render_template('dashboard.html', portfolios=current_user.portfolios)
 
-# --- NEW: QR Generator Route ---
-@app.route('/qr/<int:p_id>')
-def qr_code(p_id):
-    p = Portfolio.query.get_or_404(p_id)
-    # Use live_url if available, else fallback to a placeholder or LinkedIn
-    data = p.live_url if p.live_url else (p.linkedin if p.linkedin else "https://github.com")
-    
-    img = qrcode.make(data)
-    mem = io.BytesIO()
-    img.save(mem, 'PNG')
-    mem.seek(0)
-    return send_file(mem, mimetype='image/png')
+# --- GENERATOR & CRUD ROUTES ---
 
 @app.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -137,16 +133,24 @@ def create():
             f = request.files['resume']
             if f.filename and f.mimetype=='application/pdf': res_data = f"data:application/pdf;base64,{base64.b64encode(f.read()).decode('utf-8')}"
 
+        # Custom Color Logic (NEW)
+        custom_color = None
+        theme_preset = request.form['theme_preset']
+        if theme_preset == 'custom':
+            # Capture the color from the picker input
+            custom_color = request.form.get('custom_accent_color', '#0071e3')
+        
         new_portfolio = Portfolio(
             name=request.form['name'], role=request.form['role'], bio=request.form['bio'],
             email=request.form['email'], github=request.form['github'], linkedin=request.form['linkedin'],
-            skills=request.form['skills'], theme_preset=request.form['theme_preset'],
+            skills=request.form['skills'], theme_preset=theme_preset,
+            custom_accent_color=custom_color, # New field assignment
             formspree_id=request.form['formspree_id'], live_url=request.form['live_url'],
             profile_pic=pic_data, resume_data=res_data, user_id=current_user.id
         )
         db.session.add(new_portfolio); db.session.flush()
 
-        # Loops
+        # Loops for dynamic sections
         for i, t in enumerate(request.form.getlist('project_title[]')):
             if t.strip(): db.session.add(Project(title=t, desc=request.form.getlist('project_desc[]')[i], link=request.form.getlist('project_link[]')[i], tech=request.form.getlist('project_tech[]')[i], portfolio_id=new_portfolio.id))
         
@@ -166,6 +170,20 @@ def delete(p_id):
     db.session.delete(p); db.session.commit()
     return redirect(url_for('dashboard'))
 
+# --- DOWNLOAD & PREVIEW ROUTES ---
+
+@app.route('/qr/<int:p_id>')
+def qr_code(p_id):
+    p = Portfolio.query.get_or_404(p_id)
+    # Use live_url if available, else fallback to a placeholder or LinkedIn
+    data = p.live_url if p.live_url else (p.linkedin if p.linkedin else "https://github.com")
+    
+    img = qrcode.make(data)
+    mem = io.BytesIO()
+    img.save(mem, 'PNG')
+    mem.seek(0)
+    return send_file(mem, mimetype='image/png')
+
 @app.route('/preview/<int:p_id>')
 @app.route('/download/<int:p_id>')
 def preview(p_id):
@@ -174,11 +192,16 @@ def preview(p_id):
     template_mode = True if 'preview' in request.path else False
     
     if not template_mode:
+        # Render the file for download (static HTML file)
         rendered = render_template('portfolio.html', p=p, skills=skills, preview=False)
         mem = io.BytesIO(); mem.write(rendered.encode('utf-8')); mem.seek(0)
         return send_file(mem, as_attachment=True, download_name=f"{p.name.replace(' ','_')}_portfolio.html", mimetype='text/html')
     
+    # Render the file for live preview
     return render_template('portfolio.html', p=p, skills=skills, preview=True)
 
 if __name__ == '__main__':
+    # Initialize database if running locally
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)

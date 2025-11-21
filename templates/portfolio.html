@@ -10,9 +10,24 @@
         /* --- THEME VARS --- */
         :root { --bg: #fff; --text: #1d1d1f; --text-sec: #86868b; --card: #f5f5f7; --border: #e5e5e5; --primary: #0071e3; --radius: 24px; --font: -apple-system, sans-serif; --bg-pat: none; }
 
+        /* Fixed Presets */
         [data-theme="cyberpunk"] { --bg:#0d0d0d; --bg-pat:linear-gradient(#1a1a1a 1px,transparent 1px),linear-gradient(90deg,#1a1a1a 1px,transparent 1px); --bg-size:40px 40px; --text:#e0e0e0; --text-sec:#a0a0a0; --card:#161616; --border:#333; --primary:#00ff41; --radius:4px; --font:'Courier New', monospace; }
         [data-theme="midnight"] { --bg:#0f172a; --bg-pat:radial-gradient(#1e293b 1px,transparent 0); --bg-size:20px 20px; --text:#f8fafc; --text-sec:#94a3b8; --card:#1e293b; --border:#334155; --primary:#38bdf8; --radius:16px; --font:'Inter', sans-serif; }
         [data-theme="sunset"] { --bg:#fff0f5; --bg-pat:linear-gradient(120deg,#fff0f5,#ffe4e1); --text:#4a0404; --text-sec:#8b4513; --card:#fff; --border:#ffd7d7; --primary:#ff4500; --radius:30px; --font:'Georgia', serif; }
+        
+        /* NEW: Custom Color Theme */
+        [data-theme="custom"] {
+            /* Default to a clean, light base for custom color */
+            --bg: #fff; 
+            --text: #1d1d1f; 
+            --text-sec: #86868b; 
+            --card: #f5f5f7; 
+            --border: #e5e5e5;
+            --radius: 24px;
+            --font: 'Inter', sans-serif;
+            /* Inject the user's chosen HEX color */
+            --primary: {{ p.custom_accent_color if p.custom_accent_color else '#0071e3' }}; 
+        }
 
         /* --- STYLES --- */
         body { margin:0; padding:0; font-family:var(--font); background-color:var(--bg); background-image:var(--bg-pat); background-size:var(--bg-size, auto); color:var(--text); line-height:1.6; padding-bottom:100px; }
