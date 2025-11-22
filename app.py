@@ -6,6 +6,7 @@ import io
 import base64
 import qrcode
 import os
+import requests
 from dotenv import load_dotenv
 
 load_dotenv() 
@@ -30,12 +31,21 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+# OAuth Configuration
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
+GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
+GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
+
 # --- MODELS ---
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=True)
+    password = db.Column(db.String(200), nullable=True)  # Nullable for OAuth users
+    auth_provider = db.Column(db.String(20), default='local')  # 'local', 'google', 'github'
+    auth_id = db.Column(db.String(100), nullable=True)  # OAuth provider ID
     portfolios = db.relationship('Portfolio', backref='author', lazy=True)
 
 class Portfolio(db.Model):
@@ -113,7 +123,7 @@ def register():
 def login():
     if request.method == 'POST':
         user = User.query.filter_by(username=request.form['username']).first()
-        if user and check_password_hash(user.password, request.form['password']):
+        if user and user.auth_provider == 'local' and check_password_hash(user.password, request.form['password']):
             login_user(user); return redirect(url_for('dashboard'))
         flash('Invalid credentials')
     return render_template('auth.html', mode='login')
@@ -121,6 +131,182 @@ def login():
 @app.route('/logout')
 @login_required
 def logout(): logout_user(); return redirect(url_for('login'))
+
+# --- OAUTH ROUTES ---
+
+@app.route('/auth/google')
+def auth_google():
+    """Initiate Google OAuth flow"""
+    if not GOOGLE_CLIENT_ID:
+        flash('Google authentication is not configured', 'error')
+        return redirect(url_for('login'))
+    
+    # Google OAuth 2.0 endpoint
+    google_auth_url = (
+        "https://accounts.google.com/o/oauth2/v2/auth?"
+        f"client_id={GOOGLE_CLIENT_ID}&"
+        "response_type=code&"
+        "scope=openid%20email%20profile&"
+        f"redirect_uri={url_for('auth_google_callback', _external=True)}"
+    )
+    return redirect(google_auth_url)
+
+@app.route('/auth/google/callback')
+def auth_google_callback():
+    """Google OAuth callback"""
+    code = request.args.get('code')
+    if not code:
+        flash('Authentication failed', 'error')
+        return redirect(url_for('login'))
+    
+    try:
+        # Exchange code for tokens
+        token_url = "https://oauth2.googleapis.com/token"
+        token_data = {
+            'client_id': GOOGLE_CLIENT_ID,
+            'client_secret': GOOGLE_CLIENT_SECRET,
+            'code': code,
+            'grant_type': 'authorization_code',
+            'redirect_uri': url_for('auth_google_callback', _external=True)
+        }
+        
+        token_response = requests.post(token_url, data=token_data)
+        token_json = token_response.json()
+        
+        if 'access_token' not in token_json:
+            flash('Authentication failed', 'error')
+            return redirect(url_for('login'))
+        
+        # Get user info
+        userinfo_url = "https://www.googleapis.com/oauth2/v2/userinfo"
+        headers = {'Authorization': f"Bearer {token_json['access_token']}"}
+        userinfo_response = requests.get(userinfo_url, headers=headers)
+        userinfo = userinfo_response.json()
+        
+        # Find or create user
+        user = User.query.filter_by(auth_provider='google', auth_id=userinfo['id']).first()
+        if not user:
+            # Check if email already exists
+            existing_user = User.query.filter_by(email=userinfo['email']).first()
+            if existing_user:
+                flash('An account with this email already exists', 'error')
+                return redirect(url_for('login'))
+            
+            # Create new user
+            username = userinfo['email'].split('@')[0]
+            # Ensure username is unique
+            base_username = username
+            counter = 1
+            while User.query.filter_by(username=username).first():
+                username = f"{base_username}{counter}"
+                counter += 1
+            
+            user = User(
+                username=username,
+                email=userinfo['email'],
+                auth_provider='google',
+                auth_id=userinfo['id']
+            )
+            db.session.add(user)
+            db.session.commit()
+        
+        login_user(user)
+        flash(f'Welcome back, {user.username}!', 'success')
+        return redirect(url_for('dashboard'))
+        
+    except Exception as e:
+        flash('Authentication failed', 'error')
+        return redirect(url_for('login'))
+
+@app.route('/auth/github')
+def auth_github():
+    """Initiate GitHub OAuth flow"""
+    if not GITHUB_CLIENT_ID:
+        flash('GitHub authentication is not configured', 'error')
+        return redirect(url_for('login'))
+    
+    github_auth_url = (
+        "https://github.com/login/oauth/authorize?"
+        f"client_id={GITHUB_CLIENT_ID}&"
+        f"redirect_uri={url_for('auth_github_callback', _external=True)}&"
+        "scope=user:email"
+    )
+    return redirect(github_auth_url)
+
+@app.route('/auth/github/callback')
+def auth_github_callback():
+    """GitHub OAuth callback"""
+    code = request.args.get('code')
+    if not code:
+        flash('Authentication failed', 'error')
+        return redirect(url_for('login'))
+    
+    try:
+        # Exchange code for tokens
+        token_url = "https://github.com/login/oauth/access_token"
+        token_data = {
+            'client_id': GITHUB_CLIENT_ID,
+            'client_secret': GITHUB_CLIENT_SECRET,
+            'code': code,
+            'redirect_uri': url_for('auth_github_callback', _external=True)
+        }
+        headers = {'Accept': 'application/json'}
+        
+        token_response = requests.post(token_url, data=token_data, headers=headers)
+        token_json = token_response.json()
+        
+        if 'access_token' not in token_json:
+            flash('Authentication failed', 'error')
+            return redirect(url_for('login'))
+        
+        # Get user info
+        userinfo_url = "https://api.github.com/user"
+        headers = {'Authorization': f"token {token_json['access_token']}"}
+        userinfo_response = requests.get(userinfo_url, headers=headers)
+        userinfo = userinfo_response.json()
+        
+        # Get user email
+        emails_url = "https://api.github.com/user/emails"
+        emails_response = requests.get(emails_url, headers=headers)
+        emails = emails_response.json()
+        
+        primary_email = next((email['email'] for email in emails if email['primary']), None)
+        
+        # Find or create user
+        user = User.query.filter_by(auth_provider='github', auth_id=str(userinfo['id'])).first()
+        if not user:
+            # Check if email already exists
+            if primary_email:
+                existing_user = User.query.filter_by(email=primary_email).first()
+                if existing_user:
+                    flash('An account with this email already exists', 'error')
+                    return redirect(url_for('login'))
+            
+            # Create new user
+            username = userinfo['login']
+            # Ensure username is unique
+            base_username = username
+            counter = 1
+            while User.query.filter_by(username=username).first():
+                username = f"{base_username}{counter}"
+                counter += 1
+            
+            user = User(
+                username=username,
+                email=primary_email,
+                auth_provider='github',
+                auth_id=str(userinfo['id'])
+            )
+            db.session.add(user)
+            db.session.commit()
+        
+        login_user(user)
+        flash(f'Welcome back, {user.username}!', 'success')
+        return redirect(url_for('dashboard'))
+        
+    except Exception as e:
+        flash('Authentication failed', 'error')
+        return redirect(url_for('login'))
 
 @app.route('/dashboard')
 @login_required
@@ -150,10 +336,10 @@ def create():
         
         new_portfolio = Portfolio(
             name=request.form['name'], role=request.form['role'], bio=request.form['bio'],
-            email=request.form['email'], github=request.form['github'], linkedin=request.form['linkedin'],
-            skills=request.form['skills'], theme_preset=theme_preset,
+            email=request.form['email'], github=request.form.get('github', ''), linkedin=request.form.get('linkedin', ''),
+            skills=request.form.get('skills', ''), theme_preset=theme_preset,
             custom_accent_color=custom_color,
-            formspree_id=request.form['formspree_id'], live_url=request.form['live_url'],
+            formspree_id=request.form.get('formspree_id', ''), live_url=request.form.get('live_url', ''),
             profile_pic=pic_data, resume_data=res_data, user_id=current_user.id
         )
         db.session.add(new_portfolio); db.session.flush()
@@ -243,6 +429,7 @@ def edit(p_id):
         return redirect(url_for('preview', p_id=p.id))
     
     return render_template('edit.html', p=p)
+
 @app.route('/delete/<int:p_id>')
 @login_required
 def delete(p_id):
