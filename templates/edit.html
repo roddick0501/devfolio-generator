@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Portfolio</title>
+    <!-- Lucide Icons Script -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+            background: var(--bg); 
+            color: #1d1d1f; 
+            padding: 40px 20px; 
+            display: flex; 
+            justify-content: center; 
+        }
+        
+        .container { width: 100%; max-width: 700px; }
+        header { text-align: center; margin-bottom: 30px; }
+        h1 { font-weight: 700; margin: 10px 0; }
+        
+        .card { 
+            background: var(--card); 
+            border-radius: 20px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04); 
+            padding: 30px; 
+            margin-bottom: 20px; 
+        }
+        
+        .label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #86868b; margin-bottom: 8px; }
+        
+        input, textarea { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #d2d2d7; 
+            border-radius: 10px; 
+            margin-bottom: 15px; 
+            background: #fbfbfd; 
+            font-family: inherit; 
+            box-sizing: border-box; 
+        }
+        input:focus, textarea:focus { border-color: var(--primary); outline: 2px solid rgba(0,113,227,0.1); }
+        
+        /* Theme Grid */
+        .theme-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 15px; 
+            margin-bottom: 20px; 
+        }
+        
+        .theme-opt { position: relative; cursor: pointer; }
+        
+        .theme-opt input[type="radio"] { 
+            position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; z-index: 2;
+        }
+        
+        .theme-card { 
+            border: 2px solid #d2d2d7; 
+            border-radius: 16px; 
+            padding: 20px; 
+            text-align: center; 
+            transition: all 0.3s ease; 
+            background: white; 
+            position: relative; 
+            min-height: 100px;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+        }
+        
+        .theme-opt:hover .theme-card { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); border-color: #b8b8bd; }
+        .theme-opt input:checked + .theme-card { border-color: var(--primary); background: #f0f8ff; box-shadow: 0 4px 12px rgba(0,113,227,0.2); transform: translateY(-2px); }
+        
+        .theme-card h4 { margin: 0; font-size: 16px; font-weight: 600; }
+        
+        /* ICON STYLING */
+        .theme-icon { width: 36px; height: 36px; margin-bottom: 8px; transition: all 0.3s ease; }
+        .theme-opt:hover .theme-icon { transform: scale(1.15) rotate(5deg); }
+        
+        .btn-primary { width: 100%; background: var(--primary); color: white; padding: 16px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 16px; transition: 0.2s; }
+        .btn-primary:hover { background: #0077ED; transform: scale(1.02); }
+        
+        .row { display: flex; gap: 10px; }
+        
+        .entry-box { background: #f5f5f7; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #e5e5e5; position: relative; }
+        .btn-sec { background: #e8e8ed; padding: 8px 15px; border-radius: 8px; border: none; font-weight: 500; cursor: pointer; font-size: 13px; }
+        .btn-sec:hover { background: #d8d8dd; }
+
+        .btn-remove {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff3b30;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        
+        .btn-remove:hover { 
+            opacity: 1; 
+        }
+
+        .delete-container {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 18px;
+            border-top: 1px solid #e5e5e5;
+        }
+        
+        .delete-link {
+            color: #ff3b30;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .delete-link:hover {
+            background: rgba(255, 59, 48, 0.1);
+            text-decoration: none;
+        }
+
+        /* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 768px) {
+            body { padding: 20px 15px; }
+            .card { padding: 20px; }
+            
+            /* Stack inputs vertically on mobile */
+            .row { flex-direction: column; gap: 0; }
+            
+            /* 2 columns for themes on tablets */
+            .theme-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 480px) {
+            /* 1 column for themes on phones */
+            .theme-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <a href="{{ url_for('dashboard') }}" style="color:#86868b; text-decoration:none; font-size:14px;">&larr; Dashboard</a>
+        <h1>Edit Portfolio: {{ p.name }}</h1>
+    </header>
+
+    <form method="POST" action="{{ url_for('edit', p_id=p.id) }}" enctype="multipart/form-data">
+        
+        <!-- === THEME SELECTION === -->
+        <div class="card">
+            <span class="label">Choose Your Vibe</span>
+            <div class="theme-grid">
+                <label class="theme-opt">
+                    <input type="radio" name="theme_preset" value="cupertino" {% if p.theme_preset == 'cupertino' %}checked{% endif %}>
+                    <div class="theme-card">
+                        <i data-lucide="layout-template" class="theme-icon" style="color: #0071e3;"></i>
+                        <h4>Cupertino</h4>
+                        <span style="font-size: 11px; color: #86868b;">Clean & Minimal</span>
+                    </div>
+                </label>
+                
+                <label class="theme-opt">
+                    <input type="radio" name="theme_preset" value="cyberpunk" {% if p.theme_preset == 'cyberpunk' %}checked{% endif %}>
+                    <div class="theme-card">
+                        <i data-lucide="cpu" class="theme-icon" style="color: #00aa2c;"></i>
+                        <h4>Cyberpunk</h4>
+                        <span style="font-size: 11px; color: #86868b;">Neon Grid</span>
+                    </div>
+                </label>
+                
+                <label class="theme-opt">
+                    <input type="radio" name="theme_preset" value="midnight" {% if p.theme_preset == 'midnight' %}checked{% endif %}>
+                    <div class="theme-card">
+                        <i data-lucide="moon" class="theme-icon" style="color: #38bdf8;"></i>
+                        <h4>Midnight</h4>
+                        <span style="font-size: 11px; color: #86868b;">Dark Blue</span>
+                    </div>
+                </label>
+                
+                <label class="theme-opt">
+                    <input type="radio" name="theme_preset" value="sunset" {% if p.theme_preset == 'sunset' %}checked{% endif %}>
+                    <div class="theme-card">
+                        <i data-lucide="sunset" class="theme-icon" style="color: #ff4500;"></i>
+                        <h4>Sunset</h4>
+                        <span style="font-size: 11px; color: #86868b;">Warm Tones</span>
+                    </div>
+                </label>
+                
+                <label class="theme-opt">
+                    <input type="radio" name="theme_preset" value="professional" {% if p.theme_preset == 'professional' %}checked{% endif %}>
+                    <div class="theme-card">
+                        <i data-lucide="briefcase" class="theme-icon" style="color: #4b5563;"></i>
+                        <h4>Professional</h4>
+                        <span style="font-size: 11px; color: #86868b;">Corporate</span>
+                    </div>
+                </label>
+                
+                <label class="theme-opt">
+                    <input type="radio" name="theme_preset" value="cartoon" {% if p.theme_preset == 'cartoon' %}checked{% endif %}>
+                    <div class="theme-card">
+                        <i data-lucide="gamepad-2" class="theme-icon" style="color: #ff6b6b;"></i>
+                        <h4>Cartoon</h4>
+                        <span style="font-size: 11px; color: #86868b;">Playful Fun</span>
+                    </div>
+                </label>
+                
+                <label class="theme-opt">
+                    <input type="radio" name="theme_preset" value="elegant" {% if p.theme_preset == 'elegant' %}checked{% endif %}>
+                    <div class="theme-card">
+                        <i data-lucide="feather" class="theme-icon" style="color: #d4af37;"></i>
+                        <h4>Elegant</h4>
+                        <span style="font-size: 11px; color: #86868b;">Luxurious</span>
+                    </div>
+                </label>
+                
+                <label class="theme-opt">
+                    <input type="radio" name="theme_preset" value="nature" {% if p.theme_preset == 'nature' %}checked{% endif %}>
+                    <div class="theme-card">
+                        <i data-lucide="leaf" class="theme-icon" style="color: #228b22;"></i>
+                        <h4>Nature</h4>
+                        <span style="font-size: 11px; color: #86868b;">Earthy Green</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- === IDENTITY === -->
+        <div class="card">
+            <span class="label">Identity</span>
+            <div class="row">
+                <div style="flex:1"><input type="text" name="name" placeholder="Name" value="{{ p.name }}" required></div>
+                <div style="flex:1"><input type="text" name="role" placeholder="Role" value="{{ p.role }}" required></div>
+            </div>
+            <textarea name="bio" rows="3" placeholder="Short bio..." required>{{ p.bio }}</textarea>
+            <div class="row">
+                <div style="flex:1">
+                    <span class="label">Photo</span>
+                    <input type="file" name="profile_pic" accept="image/*">
+                </div>
+                <div style="flex:1">
+                    <span class="label">Resume (PDF)</span>
+                    <input type="file" name="resume" accept="application/pdf">
+                </div>
+            </div>
+        </div>
+        
+        <!-- === CONNECT === -->
+        <div class="card">
+            <span class="label">Connect (Optional)</span>
+            <div class="row">
+                <div style="flex:1">
+                    <span class="label">Formspree ID</span>
+                    <input type="text" name="formspree_id" placeholder="e.g. xnjkql" value="{{ p.formspree_id or '' }}">
+                </div>
+                <div style="flex:1">
+                    <span class="label">Live URL (For QR)</span>
+                    <input type="url" name="live_url" placeholder="e.g. mysite.netlify.app" value="{{ p.live_url or '' }}">
+                </div>
+            </div>
+            <p style="font-size:11px; color:#86868b; margin-top:-10px;">Create a free form at formspree.io to enable the Contact form.</p>
+        </div>
+
+        <!-- === SOCIALS & SKILLS === -->
+        <div class="card">
+            <span class="label">Socials & Skills</span>
+            <input type="text" name="skills" placeholder="Skills (e.g. Python, React)" value="{{ p.skills or '' }}">
+            <div class="row">
+                <div style="flex:1"><input type="email" name="email" placeholder="Email" value="{{ p.email }}" required></div>
+                <div style="flex:1"><input type="url" name="github" placeholder="GitHub" value="{{ p.github or '' }}"></div>
+                <div style="flex:1"><input type="url" name="linkedin" placeholder="LinkedIn" value="{{ p.linkedin or '' }}"></div>
+            </div>
+        </div>
+
+        <!-- === EXPERIENCE === -->
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <span class="label">Experience</span>
+                <button type="button" class="btn-sec" onclick="addExp()">+ Add</button>
+            </div>
+            <div id="exp-container">
+                {% for exp in p.experiences %}
+                <div class="entry-box">
+                    <div class="row">
+                        <input style="flex:1" name="exp_company[]" placeholder="Company" value="{{ exp.company }}">
+                        <input style="flex:1" name="exp_duration[]" placeholder="Dates" value="{{ exp.duration }}">
+                    </div>
+                    <input name="exp_position[]" placeholder="Role" value="{{ exp.position }}">
+                    <textarea name="exp_desc[]" rows="2" placeholder="Description">{{ exp.desc }}</textarea>
+                    <button type="button" class="btn-remove" onclick="this.parentElement.remove()">Remove</button>
+                </div>
+                {% endfor %} 
+                {% if not p.experiences %}
+                <p style="color:#86868b; font-size:14px; text-align:center;">No experiences added yet. Click '+ Add' to start.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- === PROJECTS === -->
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <span class="label">Projects</span>
+                <button type="button" class="btn-sec" onclick="addProj()">+ Add</button>
+            </div>
+            <div id="proj-container">
+                {% for proj in p.projects %}
+                <div class="entry-box">
+                    <div class="row">
+                        <input style="flex:1" name="project_title[]" placeholder="Title" value="{{ proj.title }}">
+                        <input style="flex:1" name="project_tech[]" placeholder="Tech Stack" value="{{ proj.tech }}">
+                    </div>
+                    <textarea name="project_desc[]" rows="2" placeholder="Description">{{ proj.desc }}</textarea>
+                    <input name="project_link[]" placeholder="URL" value="{{ proj.link }}">
+                    <button type="button" class="btn-remove" onclick="this.parentElement.remove()">Remove</button>
+                </div>
+                {% endfor %} 
+                {% if not p.projects %}
+                <p style="color:#86868b; font-size:14px; text-align:center;">No projects added yet. Click '+ Add' to start.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <button type="submit" class="btn-primary">Save Changes &rarr;</button>
+        
+        <div class="delete-container">
+            <a href="{{ url_for('delete', p_id=p.id) }}" class="delete-link" onclick="return confirm('Are you sure you want to permanently delete this portfolio?')">
+                <i data-lucide="trash-2" style="width:16px; height:16px;"></i>
+                Delete Portfolio
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+    // INITIALIZE ICONS
+    lucide.createIcons();
+
+    function addExp() {
+        const noExpMessage = document.querySelector('#exp-container p');
+        if (noExpMessage) noExpMessage.remove();
+        
+        let d = document.createElement('div'); 
+        d.className='entry-box';
+        d.innerHTML = `<div class="row"><input style="flex:1" name="exp_company[]" placeholder="Company"><input style="flex:1" name="exp_duration[]" placeholder="Dates"></div><input name="exp_position[]" placeholder="Role"><textarea name="exp_desc[]" rows="2" placeholder="Description"></textarea><button type="button" class="btn-remove" onclick="this.parentElement.remove()">Remove</button>`;
+        document.getElementById('exp-container').appendChild(d);
+    }
+    
+    function addProj() {
+        const noProjMessage = document.querySelector('#proj-container p');
+        if (noProjMessage) noProjMessage.remove();
+        
+        let d = document.createElement('div'); 
+        d.className='entry-box';
+        d.innerHTML = `<div class="row"><input style="flex:1" name="project_title[]" placeholder="Title"><input style="flex:1" name="project_tech[]" placeholder="Tech Stack"></div><textarea name="project_desc[]" rows="2" placeholder="Description"></textarea><input name="project_link[]" placeholder="URL"><button type="button" class="btn-remove" onclick="this.parentElement.remove()">Remove</button>`;
+        document.getElementById('proj-container').appendChild(d);
+    }
+</script>
+</body>
+</html>

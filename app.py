@@ -18,7 +18,10 @@ if database_uri and database_uri.startswith("postgres://"):
     database_uri = database_uri.replace("postgres://", "postgresql://", 1)
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'b42907f1d8325fda2d3fcd6917c2f910437602425099d321c9dab187b04d89a5y') 
-app.config['SQLALCHEMY_DATABASE_URI'] = database_uri or 'sqlite:///instance/portfolios.db'
+
+# Fixed database configuration
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = database_uri or f'sqlite:///{os.path.join(basedir, "instance", "portfolios.db")}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 
@@ -46,13 +49,11 @@ class Portfolio(db.Model):
     skills = db.Column(db.String(200))
     
     theme_preset = db.Column(db.String(50), default="cupertino") 
-    custom_accent_color = db.Column(db.String(7), nullable=True) # Stores HEX code
+    custom_accent_color = db.Column(db.String(7), nullable=True)
     
-    # Files (Base64)
     profile_pic = db.Column(db.Text, nullable=True)
     resume_data = db.Column(db.Text, nullable=True)
     
-    # New Features
     formspree_id = db.Column(db.String(50), nullable=True)
     live_url = db.Column(db.String(200), nullable=True)
     
@@ -79,8 +80,10 @@ class Experience(db.Model):
 
 # --- DATABASE INITIALIZATION ---
 with app.app_context():
-    if 'sqlite' in app.config['SQLALCHEMY_DATABASE_URI'] and not os.path.exists('instance'):
-        os.makedirs('instance')
+    # Ensure instance directory exists
+    instance_dir = os.path.join(basedir, 'instance')
+    if not os.path.exists(instance_dir):
+        os.makedirs(instance_dir)
     
     db.create_all()
 
@@ -149,7 +152,7 @@ def create():
             name=request.form['name'], role=request.form['role'], bio=request.form['bio'],
             email=request.form['email'], github=request.form['github'], linkedin=request.form['linkedin'],
             skills=request.form['skills'], theme_preset=theme_preset,
-            custom_accent_color=custom_color, # New field assignment
+            custom_accent_color=custom_color,
             formspree_id=request.form['formspree_id'], live_url=request.form['live_url'],
             profile_pic=pic_data, resume_data=res_data, user_id=current_user.id
         )
@@ -167,6 +170,79 @@ def create():
     
     return render_template('generator.html')
 
+@app.route('/edit/<int:p_id>', methods=['GET', 'POST'])
+@login_required
+def edit(p_id):
+    p = Portfolio.query.get_or_404(p_id)
+    if p.author != current_user:
+        return "Unauthorized", 403
+    
+    if request.method == 'POST':
+        # Debug: Print form data to see what's being submitted
+        print("Form data:", dict(request.form))
+        
+        # Update basic info - using .get() for all optional fields
+        p.name = request.form['name']
+        p.role = request.form['role']
+        p.bio = request.form['bio']
+        p.email = request.form['email']
+        p.github = request.form.get('github', '')
+        p.linkedin = request.form.get('linkedin', '')
+        p.skills = request.form.get('skills', '')
+        p.formspree_id = request.form.get('formspree_id', '')
+        p.live_url = request.form.get('live_url', '')
+        
+        # Update theme - this is the key fix
+        theme_preset = request.form.get('theme_preset', 'cupertino')
+        print(f"Theme selected: {theme_preset}")  # Debug
+        p.theme_preset = theme_preset
+        
+        # Update files if provided
+        if request.files.get('profile_pic'):
+            f = request.files['profile_pic']
+            if f.filename:
+                p.profile_pic = f"data:{f.mimetype};base64,{base64.b64encode(f.read()).decode('utf-8')}"
+        
+        if request.files.get('resume'):
+            f = request.files['resume']
+            if f.filename and f.mimetype == 'application/pdf':
+                p.resume_data = f"data:application/pdf;base64,{base64.b64encode(f.read()).decode('utf-8')}"
+        
+        # Delete existing projects and experiences
+        Project.query.filter_by(portfolio_id=p.id).delete()
+        Experience.query.filter_by(portfolio_id=p.id).delete()
+        
+        # Add updated projects
+        titles = request.form.getlist('project_title[]')
+        for i, title in enumerate(titles):
+            if title.strip():
+                proj = Project(
+                    title=title,
+                    desc=request.form.getlist('project_desc[]')[i],
+                    link=request.form.getlist('project_link[]')[i],
+                    tech=request.form.getlist('project_tech[]')[i],
+                    portfolio_id=p.id
+                )
+                db.session.add(proj)
+        
+        # Add updated experiences
+        companies = request.form.getlist('exp_company[]')
+        for i, company in enumerate(companies):
+            if company.strip():
+                exp = Experience(
+                    company=company,
+                    position=request.form.getlist('exp_position[]')[i],
+                    duration=request.form.getlist('exp_duration[]')[i],
+                    desc=request.form.getlist('exp_desc[]')[i],
+                    portfolio_id=p.id
+                )
+                db.session.add(exp)
+        
+        db.session.commit()
+        flash('Portfolio updated successfully!', 'success')
+        return redirect(url_for('preview', p_id=p.id))
+    
+    return render_template('edit.html', p=p)
 @app.route('/delete/<int:p_id>')
 @login_required
 def delete(p_id):
@@ -188,20 +264,20 @@ def qr_code(p_id):
     return send_file(mem, mimetype='image/png')
 
 @app.route('/preview/<int:p_id>')
-@app.route('/download/<int:p_id>')
 def preview(p_id):
     p = Portfolio.query.get_or_404(p_id)
     skills = [s.strip() for s in p.skills.split(',')] if p.skills else []
-    template_mode = True if 'preview' in request.path else False
-    
-    if not template_mode:
-        rendered = render_template('portfolio.html', p=p, skills=skills, preview=False)
-        mem = io.BytesIO(); mem.write(rendered.encode('utf-8')); mem.seek(0)
-        return send_file(mem, as_attachment=True, download_name=f"{p.name.replace(' ','_')}_portfolio.html", mimetype='text/html')
-    
     return render_template('portfolio.html', p=p, skills=skills, preview=True)
 
+@app.route('/download/<int:p_id>')
+def download(p_id):
+    p = Portfolio.query.get_or_404(p_id)
+    skills = [s.strip() for s in p.skills.split(',')] if p.skills else []
+    rendered = render_template('portfolio.html', p=p, skills=skills, preview=False)
+    mem = io.BytesIO()
+    mem.write(rendered.encode('utf-8'))
+    mem.seek(0)
+    return send_file(mem, as_attachment=True, download_name=f"{p.name.replace(' ','_')}_portfolio.html", mimetype='text/html')
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)

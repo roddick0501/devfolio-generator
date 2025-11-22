@@ -2,67 +2,246 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
+    <!-- Include Lucide Icons script -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f5f7; margin: 0; padding: 40px; color: #1d1d1f; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
-        h1 { font-weight: 700; letter-spacing: -1px; }
-        .btn { background: #0071e3; color: white; text-decoration: none; padding: 12px 24px; border-radius: 50px; font-weight: 500; font-size: 14px; transition: 0.2s; }
-        .btn:hover { background: #0077ED; transform: scale(1.05); }
-        .btn-outline { background: transparent; color: #1d1d1f; border: 1px solid #d2d2d7; }
+        /* BASE STYLES */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+            background: #f5f5f7; 
+            margin: 0; 
+            padding: 40px; 
+            color: #1d1d1f; 
+        }
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 40px; 
+        }
+        h1 { 
+            font-weight: 700; 
+            letter-spacing: -1px; 
+            font-size: 28px;
+        }
         
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; }
+        /* Buttons */
+        .btn { 
+            background: #0071e3; 
+            color: white; 
+            text-decoration: none; 
+            padding: 12px 24px; 
+            border-radius: 50px; 
+            font-weight: 500; 
+            font-size: 14px; 
+            transition: 0.2s; 
+            display: inline-flex; 
+            align-items: center; 
+            white-space: nowrap;
+        }
+        .btn:hover { 
+            background: #0077ED; 
+            transform: translateY(-1px);
+        }
+        .btn-outline { 
+            background: transparent; 
+            color: #1d1d1f; 
+            border: 1px solid #d2d2d7; 
+        }
         
-        .card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); transition: transform 0.2s; display: flex; flex-direction: column; justify-content: space-between; }
-        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+        /* Grid Layout */
+        .grid { 
+            /* MAXIMIZED CARD WIDTH: Increased min width to 400px. 
+               This ensures fewer cards per row, making them span wider.*/
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); 
+            gap: 20px; 
+        }
         
-        .actions { margin-top: 20px; display: flex; gap: 8px; }
-        .action-btn { font-size: 12px; text-decoration: none; padding: 8px 14px; border-radius: 8px; background: #f5f5f7; color: #1d1d1f; font-weight: 500; }
-        .action-btn:hover { background: #e5e5ea; }
-        .delete { color: #ff3b30; background: #fff2f2; }
-        .delete:hover { background: #ffe5e5; }
+        /* Card Styles */
+        .card { 
+            background: white; 
+            border-radius: 20px; 
+            padding: 25px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06); 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between;
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08); 
+        }
+
+        .card-content { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start;
+            margin-bottom: 25px; 
+        }
+        .card-content h2 { 
+            margin: 0 0 5px 0; 
+            font-size: 20px; 
+            font-weight: 600; 
+        }
+
+        /* Action Buttons */
+        .actions { 
+            display: flex; 
+            gap: 8px; 
+        }
+        .action-btn { 
+            flex: 1 1 0%; /* Ensure all buttons take equal width to prevent overflow */
+            text-align: center; 
+            padding: 8px 6px; 
+            border-radius: 12px; 
+            text-decoration: none; 
+            font-size: 12px;
+            font-weight: 600;
+            transition: background-color 0.2s, color 0.2s;
+            display: inline-flex; 
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+        /* Icon spacing for tighter fit */
+        .action-btn i {
+             margin-right:4px;
+        }
+
+        /* Themed Button Colors */
+        .actions a:nth-child(1) { background: #e7f0ff; color: #0071e3; } /* Preview (Blue) */
+        .actions a:nth-child(2) { background: #fff7e6; color: #f5a623; } /* Edit (Orange) */
+        .actions a:nth-child(3) { background: #e6ffec; color: #00c439; } /* Download (Green) */
+        .actions .delete { background: #ffebeb; color: #ff3b30; } /* Delete (Red) */
+
+        .actions a:nth-child(1):hover { background: #d0e0ff; }
+        .actions a:nth-child(2):hover { background: #fff0cc; }
+        .actions a:nth-child(3):hover { background: #ccffe0; }
+        .actions .delete:hover { background: #ffd0d0; }
+        
+        .no-portfolios { 
+            text-align: center; 
+            padding: 50px; 
+            color: #86868b; 
+            background: white; 
+            border-radius: 20px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            grid-column: 1 / -1;
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            body {
+                padding: 20px 15px;
+            }
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+                margin-bottom: 30px;
+            }
+            .header > div {
+                width: 100%;
+                display: flex;
+                justify-content: space-between;
+                gap: 10px;
+            }
+            .btn {
+                padding: 10px 18px;
+                font-size: 13px;
+                flex-grow: 1;
+                justify-content: center;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            .grid {
+                /* On mobile, cards should take full width */
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            .actions {
+                flex-direction: column; /* Stack action buttons vertically */
+                gap: 8px;
+            }
+            .action-btn {
+                flex: none; /* Disable flex-grow when stacked */
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>My Portfolios</h1>
+        <h1>Dashboard</h1>
         <div>
-            <a href="{{ url_for('create') }}" class="btn">+ New Portfolio</a>
-            <a href="{{ url_for('logout') }}" class="btn btn-outline" style="margin-left: 10px;">Log Out</a>
+            <a href="{{ url_for('create') }}" class="btn">
+                <i data-lucide="plus" style="width:16px; height:16px; margin-right:6px;"></i>
+                Create New
+            </a>
+            <a href="{{ url_for('logout') }}" class="btn btn-outline">Log Out</a>
         </div>
     </div>
 
     <div class="grid">
         {% for p in portfolios %}
         <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:start;">
-                <div>
-                    <div style="display:flex; gap:8px; align-items:center;">
-                        <h3 style="margin:0;">{{ p.name }}</h3>
-                        {% if p.theme_preset == 'cyberpunk' %}<span style="width:8px; height:8px; background:#00ff41; border-radius:50%;"></span>{% endif %}
-                        {% if p.theme_preset == 'sunset' %}<span style="width:8px; height:8px; background:#ff4500; border-radius:50%;"></span>{% endif %}
-                        {% if p.theme_preset == 'midnight' %}<span style="width:8px; height:8px; background:#38bdf8; border-radius:50%;"></span>{% endif %}
+            <div>
+                <div class="card-content">
+                    <div>
+                        <h2>{{ p.name }}</h2>
+                        <div style="display:flex; align-items:center; gap:5px; margin-top:5px;">
+                            <!-- Theme Indicator Dots -->
+                            {% if p.theme_preset == 'default' %}<span style="width:8px; height:8px; background:#0071e3; border-radius:50%;"></span>{% endif %}
+                            {% if p.theme_preset == 'cyberpunk' %}<span style="width:8px; height:8px; background:#00ff41; border-radius:50%;"></span>{% endif %}
+                            {% if p.theme_preset == 'midnight' %}<span style="width:8px; height:8px; background:#38bdf8; border-radius:50%;"></span>{% endif %}
+                            {% if p.theme_preset == 'sunset' %}<span style="width:8px; height:8px; background:#ff4500; border-radius:50%;"></span>{% endif %}
+                            {% if p.theme_preset == 'nature' %}<span style="width:8px; height:8px; background:#4caf50; border-radius:50%;"></span>{% endif %}
+                            {% if p.theme_preset == 'custom' %}<span style="width:8px; height:8px; background:{{ p.custom_accent_color }}; border-radius:50%;"></span>{% endif %}
+                        </div>
+                        <span style="color:#86868b; font-size:14px;">{{ p.role }}</span>
                     </div>
-                    <span style="color:#86868b; font-size:14px;">{{ p.role }}</span>
-                </div>
-                
-                <div style="text-align:center;">
-                    <img src="{{ url_for('qr_code', p_id=p.id) }}" style="width:60px; height:60px; border-radius:8px; border:1px solid #e5e5e5;">
+                    
+                    <div style="text-align:center;">
+                        <!-- QR code image is generated dynamically on the Flask side -->
+                        <img src="{{ url_for('qr_code', p_id=p.id) }}" style="width:60px; height:60px; border-radius:8px; border:1px solid #e5e5e5;">
+                    </div>
                 </div>
             </div>
             
             <div class="actions">
-                <a href="{{ url_for('preview', p_id=p.id) }}" class="action-btn">Preview</a>
-                <a href="{{ url_for('download', p_id=p.id) }}" class="action-btn">Download</a>
-                <a href="{{ url_for('delete', p_id=p.id) }}" class="action-btn delete" onclick="return confirm('Delete this portfolio?')">Delete</a>
+                <a href="{{ url_for('preview', p_id=p.id) }}" class="action-btn">
+                    <i data-lucide="eye" style="width:16px; height:16px;"></i>
+                    Preview
+                </a>
+                <a href="{{ url_for('edit', p_id=p.id) }}" class="action-btn edit">
+                    <i data-lucide="edit-2" style="width:16px; height:16px;"></i>
+                    Edit
+                </a>
+                <a href="{{ url_for('download', p_id=p.id) }}" class="action-btn">
+                    <i data-lucide="download" style="width:16px; height:16px;"></i>
+                    Download
+                </a>
+                <a href="{{ url_for('delete', p_id=p.id) }}" class="action-btn delete" onclick="return confirm('Are you sure you want to delete this portfolio?')">
+                    <i data-lucide="trash-2" style="width:16px; height:16px;"></i>
+                    Delete
+                </a>
             </div>
         </div>
         {% else %}
-        <div style="text-align:center; grid-column: 1/-1; color: #86868b; padding-top: 60px;">
-            <h2>No portfolios yet.</h2>
-            <p>Click "New Portfolio" to start building.</p>
+        <div class="no-portfolios">
+            You don't have any portfolios yet. Click "Create New" to get started!
         </div>
         {% endfor %}
     </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+    </script>
 </body>
 </html>

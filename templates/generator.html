@@ -2,26 +2,111 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Studio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Studio</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
         :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; }
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: #1d1d1f; padding: 40px 20px; display: flex; justify-content: center; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+            background: var(--bg); 
+            color: #1d1d1f; 
+            padding: 40px 20px; 
+            display: flex; 
+            justify-content: center; 
+        }
+        
         .container { width: 100%; max-width: 700px; }
         header { text-align: center; margin-bottom: 30px; }
         h1 { font-weight: 700; margin: 10px 0; }
-        .card { background: var(--card); border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); padding: 30px; margin-bottom: 20px; }
+        
+        .card { 
+            background: var(--card); 
+            border-radius: 20px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04); 
+            padding: 30px; 
+            margin-bottom: 20px; 
+        }
+        
         .label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #86868b; margin-bottom: 8px; }
-        input, textarea { width: 100%; padding: 12px; border: 1px solid #d2d2d7; border-radius: 10px; margin-bottom: 15px; background: #fbfbfd; font-family: inherit; box-sizing: border-box; }
-        input:focus { border-color: var(--primary); outline: 2px solid rgba(0,113,227,0.1); }
-        .theme-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; margin-bottom: 15px; } /* Adjusted grid for 5 items */
+        
+        input, textarea { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #d2d2d7; 
+            border-radius: 10px; 
+            margin-bottom: 15px; 
+            background: #fbfbfd; 
+            font-family: inherit; 
+            box-sizing: border-box; 
+        }
+        input:focus, textarea:focus { border-color: var(--primary); outline: 2px solid rgba(0,113,227,0.1); }
+        
+        /* Theme Grid */
+        .theme-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 15px; 
+            margin-bottom: 20px; 
+        }
+        
         .theme-opt { position: relative; cursor: pointer; }
-        .theme-opt input { position: absolute; opacity: 0; }
-        .theme-card { border: 2px solid #d2d2d7; border-radius: 12px; padding: 15px; text-align: center; transition: 0.2s; background: white; }
-        .theme-opt input:checked + .theme-card { border-color: var(--primary); background: #f0f8ff; box-shadow: 0 0 0 2px var(--primary); }
-        .btn-primary { width: 100%; background: var(--primary); color: white; padding: 16px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 16px; }
+        
+        .theme-opt input[type="radio"] { 
+            position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; z-index: 2;
+        }
+        
+        .theme-card { 
+            border: 2px solid #d2d2d7; 
+            border-radius: 16px; 
+            padding: 20px; 
+            text-align: center; 
+            transition: all 0.3s ease; 
+            background: white; 
+            position: relative; 
+            min-height: 100px;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+        }
+        
+        .theme-opt:hover .theme-card { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); border-color: #b8b8bd; }
+        .theme-opt input:checked + .theme-card { border-color: var(--primary); background: #f0f8ff; box-shadow: 0 4px 12px rgba(0,113,227,0.2); transform: translateY(-2px); }
+        
+        .theme-card h4 { margin: 0; font-size: 16px; font-weight: 600; }
+        
+        /* ICON STYLING */
+        .theme-icon { width: 36px; height: 36px; margin-bottom: 8px; transition: all 0.3s ease; }
+        .theme-opt:hover .theme-icon { transform: scale(1.15) rotate(5deg); }
+        
+        .btn-primary { width: 100%; background: var(--primary); color: white; padding: 16px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 16px; transition: 0.2s; }
+        .btn-primary:hover { background: #0077ED; transform: scale(1.02); }
+        
         .row { display: flex; gap: 10px; }
+        
         .entry-box { background: #f5f5f7; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #e5e5e5; }
         .btn-sec { background: #e8e8ed; padding: 8px 15px; border-radius: 8px; border: none; font-weight: 500; cursor: pointer; font-size: 13px; }
+        .btn-sec:hover { background: #d8d8dd; }
+
+        /* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 768px) {
+            body { padding: 20px 15px; }
+            .card { padding: 20px; }
+            
+            /* Stack inputs vertically on mobile */
+            .row { flex-direction: column; gap: 0; }
+            
+            /* 2 columns for themes on tablets */
+            .theme-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 480px) {
+            /* 1 column for themes on phones */
+            .theme-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 24px; }
+        }
     </style>
 </head>
 <body>
@@ -35,17 +120,79 @@
     <form method="POST" enctype="multipart/form-data">
         
         <div class="card">
-            <span class="label">Vibe & Custom Color</span>
+            <span class="label">Choose Your Vibe</span>
             <div class="theme-grid">
-                <label class="theme-opt"><input type="radio" name="theme_preset" value="cupertino" checked><div class="theme-card"><h4>刻 Cupertino</h4></div></label>
-                <label class="theme-opt"><input type="radio" name="theme_preset" value="cyberpunk"><div class="theme-card"><h4>太 Cyberpunk</h4></div></label>
-                <label class="theme-opt"><input type="radio" name="theme_preset" value="midnight"><div class="theme-card"><h4>血 Midnight</h4></div></label>
-                <label class="theme-opt"><input type="radio" name="theme_preset" value="sunset"><div class="theme-card"><h4>桁 Sunset</h4></div></label>
+                <label class="theme-opt">
+                    <input type="radio" name="theme_preset" value="cupertino" checked>
+                    <div class="theme-card">
+                        <i data-lucide="layout-template" class="theme-icon" style="color: #0071e3;"></i>
+                        <h4>Cupertino</h4>
+                        <span style="font-size: 11px; color: #86868b;">Clean & Minimal</span>
+                    </div>
+                </label>
                 
-                <label class="theme-opt"><input type="radio" name="theme_preset" value="custom"><div class="theme-card">
-                    <h4>🎨 Custom Color</h4>
-                    <input type="color" name="custom_accent_color" value="#1d1d1f" style="width:100%; height:30px; margin-top:5px; border-radius:5px; padding:0; border:none; display:block; opacity:1; cursor:pointer;">
-                </div></label>
+                <label class="theme-opt">
+                    <input type="radio" name="theme_preset" value="cyberpunk">
+                    <div class="theme-card">
+                        <i data-lucide="cpu" class="theme-icon" style="color: #00aa2c;"></i>
+                        <h4>Cyberpunk</h4>
+                        <span style="font-size: 11px; color: #86868b;">Neon Grid</span>
+                    </div>
+                </label>
+                
+                <label class="theme-opt">
+                    <input type="radio" name="theme_preset" value="midnight">
+                    <div class="theme-card">
+                        <i data-lucide="moon" class="theme-icon" style="color: #38bdf8;"></i>
+                        <h4>Midnight</h4>
+                        <span style="font-size: 11px; color: #86868b;">Dark Blue</span>
+                    </div>
+                </label>
+                
+                <label class="theme-opt">
+                    <input type="radio" name="theme_preset" value="sunset">
+                    <div class="theme-card">
+                        <i data-lucide="sunset" class="theme-icon" style="color: #ff4500;"></i>
+                        <h4>Sunset</h4>
+                        <span style="font-size: 11px; color: #86868b;">Warm Tones</span>
+                    </div>
+                </label>
+                
+                <label class="theme-opt">
+                    <input type="radio" name="theme_preset" value="professional">
+                    <div class="theme-card">
+                        <i data-lucide="briefcase" class="theme-icon" style="color: #4b5563;"></i>
+                        <h4>Professional</h4>
+                        <span style="font-size: 11px; color: #86868b;">Corporate</span>
+                    </div>
+                </label>
+                
+                <label class="theme-opt">
+                    <input type="radio" name="theme_preset" value="cartoon">
+                    <div class="theme-card">
+                        <i data-lucide="gamepad-2" class="theme-icon" style="color: #ff6b6b;"></i>
+                        <h4>Cartoon</h4>
+                        <span style="font-size: 11px; color: #86868b;">Playful Fun</span>
+                    </div>
+                </label>
+                
+                <label class="theme-opt">
+                    <input type="radio" name="theme_preset" value="elegant">
+                    <div class="theme-card">
+                        <i data-lucide="feather" class="theme-icon" style="color: #d4af37;"></i>
+                        <h4>Elegant</h4>
+                        <span style="font-size: 11px; color: #86868b;">Luxurious</span>
+                    </div>
+                </label>
+                
+                <label class="theme-opt">
+                    <input type="radio" name="theme_preset" value="nature">
+                    <div class="theme-card">
+                        <i data-lucide="leaf" class="theme-icon" style="color: #228b22;"></i>
+                        <h4>Nature</h4>
+                        <span style="font-size: 11px; color: #86868b;">Earthy Green</span>
+                    </div>
+                </label>
             </div>
         </div>
 
@@ -81,22 +228,31 @@
             <div id="proj-container"></div>
         </div>
 
-        <button type="submit" class="btn-primary">Generate &rarr;</button>
+        <button type="submit" class="btn-primary">Generate Portfolio &rarr;</button>
     </form>
 </div>
 
 <script>
+    // INITIALIZE ICONS
+    lucide.createIcons();
+
     function addExp() {
-        let d = document.createElement('div'); d.className='entry-box';
+        let d = document.createElement('div'); 
+        d.className='entry-box';
         d.innerHTML = `<div class="row"><input style="flex:1" name="exp_company[]" placeholder="Company"><input style="flex:1" name="exp_duration[]" placeholder="Dates"></div><input name="exp_position[]" placeholder="Role"><textarea name="exp_desc[]" rows="2" placeholder="Description"></textarea>`;
         document.getElementById('exp-container').appendChild(d);
     }
+    
     function addProj() {
-        let d = document.createElement('div'); d.className='entry-box';
+        let d = document.createElement('div'); 
+        d.className='entry-box';
         d.innerHTML = `<div class="row"><input style="flex:1" name="project_title[]" placeholder="Title"><input style="flex:1" name="project_tech[]" placeholder="Tech Stack"></div><textarea name="project_desc[]" rows="2" placeholder="Description"></textarea><input name="project_link[]" placeholder="URL">`;
         document.getElementById('proj-container').appendChild(d);
     }
-    addExp(); addProj();
+    
+    // Initialize with one experience and one project
+    addExp(); 
+    addProj();
 </script>
 </body>
 </html>
