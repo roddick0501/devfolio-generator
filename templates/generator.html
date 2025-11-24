@@ -85,7 +85,19 @@
         .theme-icon { width: 36px; height: 36px; margin-bottom: 8px; transition: all 0.3s ease; }
         .theme-opt:hover .theme-icon { transform: scale(1.15) rotate(5deg); }
         
-        .btn-primary { width: 100%; background: var(--primary); color: white; padding: 16px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 16px; transition: 0.2s; }
+        .btn-primary { 
+            width: 100%; 
+            background: var(--primary); 
+            color: white; 
+            padding: 16px; 
+            border: none; 
+            border-radius: 12px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            font-size: 16px; 
+            transition: 0.2s; 
+            position: relative; /* Essential for spinner positioning */
+        }
         .btn-primary:hover { background: #0077ED; transform: scale(1.02); }
         
         .row { display: flex; gap: 10px; }
@@ -98,44 +110,65 @@
         @media (max-width: 768px) {
             body { padding: 20px 15px; }
             .card { padding: 20px; }
-            
-            /* Stack inputs vertically on mobile */
             .row { flex-direction: column; gap: 0; }
-            
-            /* 2 columns for themes on tablets */
             .theme-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
         @media (max-width: 480px) {
-            /* 1 column for themes on phones */
             .theme-grid { grid-template-columns: 1fr; }
             h1 { font-size: 24px; }
         }
 
         /* Form Validation Styles */
-input:invalid, textarea:invalid {
-    border-color: #ff3b30;
-    background: #fff5f5;
-}
+        input:invalid, textarea:invalid {
+            border-color: #ff3b30;
+            background: #fff5f5;
+        }
 
-.validation-message {
-    color: #ff3b30;
-    font-size: 12px;
-    margin: -10px 0 15px 0;
-    display: none;
-}
+        .validation-message {
+            color: #ff3b30;
+            font-size: 12px;
+            margin: -10px 0 15px 0;
+            display: none;
+        }
 
-input:invalid + .validation-message,
-textarea:invalid + .validation-message {
-    display: block;
-}
+        input:invalid + .validation-message,
+        textarea:invalid + .validation-message {
+            display: block;
+        }
 
-/* Required field indicators */
-.required::after {
-    content: " *";
-    color: #ff3b30;
-}
+        .required::after {
+            content: " *";
+            color: #ff3b30;
+        }
 
+        /* --- BUTTON LOADING ANIMATION --- */
+        /* 1. Hide text when loading */
+        .is-loading {
+            color: transparent !important;
+            pointer-events: none;
+        }
+
+        /* 2. Show spinner */
+        .is-loading::after {
+            content: "";
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            top: 50%;
+            left: 50%;
+            margin-top: -12px;
+            margin-left: -12px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
     </style>
 </head>
@@ -147,7 +180,7 @@ textarea:invalid + .validation-message {
         <h1>Portfolio Studio</h1>
     </header>
 
-    <form method="POST" enctype="multipart/form-data">
+    <form method="POST" enctype="multipart/form-data" id="portfolioForm">
         
         <div class="card">
             <span class="label">Choose Your Vibe</span>
@@ -227,56 +260,69 @@ textarea:invalid + .validation-message {
         </div>
 
         <div class="card">
-<span class="label required">Identity</span>
-<div class="row">
-<div style="flex:1">
-<input type="text" name="name" placeholder="Name" required oninvalid="this.setCustomValidity('Name can’t be empty')" oninput="this.setCustomValidity('')">
-<div class="validation-message">Please fill this field.</div>
-</div>
-<div style="flex:1">
-<input type="text" name="role" placeholder="Role" required oninvalid="this.setCustomValidity('Role can’t be empty')" oninput="this.setCustomValidity('')">
-<div class="validation-message">Please fill this field.</div>
-</div>
-</div>
-<textarea name="bio" rows="3" placeholder="Short bio..." required oninvalid="this.setCustomValidity('Bio can’t be empty')" oninput="this.setCustomValidity('')"></textarea>
-<div class="validation-message">Please fill this field.</div>
-<div class="row">
-<div style="flex:1"><span class="label">Photo</span><input type="file" name="profile_pic" accept="image/*"></div>
-<div style="flex:1"><span class="label">Resume (PDF)</span><input type="file" name="resume" accept="application/pdf"></div>
-</div>
-</div>
+            <span class="label required">Identity</span>
+            <div class="row">
+                <div style="flex:1">
+                    <input type="text" name="name" placeholder="Name" required oninvalid="this.setCustomValidity('Name can’t be empty')" oninput="this.setCustomValidity('')">
+                    <div class="validation-message">Please fill this field.</div>
+                </div>
+                <div style="flex:1">
+                    <input type="text" name="role" placeholder="Role" required oninvalid="this.setCustomValidity('Role can’t be empty')" oninput="this.setCustomValidity('')">
+                    <div class="validation-message">Please fill this field.</div>
+                </div>
+            </div>
+            <textarea name="bio" rows="3" placeholder="Short bio..." required oninvalid="this.setCustomValidity('Bio can’t be empty')" oninput="this.setCustomValidity('')"></textarea>
+            <div class="validation-message">Please fill this field.</div>
+            <div class="row">
+                <div style="flex:1"><span class="label">Photo</span><input type="file" name="profile_pic" accept="image/*"></div>
+                <div style="flex:1"><span class="label">Resume (PDF)</span><input type="file" name="resume" accept="application/pdf"></div>
+            </div>
+        </div>
 
 
-<div class="card">
-<span class="label">Connect (Optional)</span>
-<div class="row">
-<div style="flex:1"><span class="label">Formspree ID</span><input type="text" name="formspree_id" placeholder="e.g. xnjkql"></div>
-<div style="flex:1"><span class="label">Live URL (For QR)</span><input type="url" name="live_url" placeholder="e.g. mysite.netlify.app" oninvalid="this.setCustomValidity('This needs to be a valid link')" oninput="this.setCustomValidity('')"><div class="validation-message">This needs to be a valid link.</div></div>
-</div>
-</div>
+        <div class="card">
+            <span class="label">Connect (Optional)</span>
+            <div class="row">
+                <div style="flex:1"><span class="label">Formspree ID</span><input type="text" name="formspree_id" placeholder="e.g. xnjkql"></div>
+                <div style="flex:1">
+                    <span class="label">Live URL (For QR)</span>
+                    <input type="url" name="live_url" placeholder="e.g. mysite.netlify.app" oninvalid="this.setCustomValidity('This needs to be a valid link')" oninput="this.setCustomValidity('')">
+                    <div class="validation-message">This needs to be a valid link.</div>
+                </div>
+            </div>
+        </div>
 
 
-<div class="card">
-<span class="label">Socials & Skills</span>
-<input type="text" name="skills" placeholder="Skills (e.g. Python, React)">
-<div class="row">
-<div style="flex:1"><input type="email" name="email" placeholder="Email" required oninvalid="this.setCustomValidity('Enter a valid email')" oninput="this.setCustomValidity('')"><div class="validation-message">Enter a valid email.</div></div>
-<div style="flex:1"><input type="url" name="github" placeholder="GitHub" oninvalid="this.setCustomValidity('This needs to be a valid link')" oninput="this.setCustomValidity('')"><div class="validation-message">This needs to be a valid link.</div></div>
-<div style="flex:1"><input type="url" name="linkedin" placeholder="LinkedIn" oninvalid="this.setCustomValidity('This needs to be a valid link')" oninput="this.setCustomValidity('')"><div class="validation-message">This needs to be a valid link.</div></div>
-</div>
-</div>
+        <div class="card">
+            <span class="label">Socials & Skills</span>
+            <input type="text" name="skills" placeholder="Skills (e.g. Python, React)">
+            <div class="row">
+                <div style="flex:1">
+                    <input type="email" name="email" placeholder="Email" required oninvalid="this.setCustomValidity('Enter a valid email')" oninput="this.setCustomValidity('')">
+                    <div class="validation-message">Enter a valid email.</div>
+                </div>
+                <div style="flex:1">
+                    <input type="url" name="github" placeholder="GitHub" oninvalid="this.setCustomValidity('This needs to be a valid link')" oninput="this.setCustomValidity('')">
+                    <div class="validation-message">This needs to be a valid link.</div>
+                </div>
+                <div style="flex:1">
+                    <input type="url" name="linkedin" placeholder="LinkedIn" oninvalid="this.setCustomValidity('This needs to be a valid link')" oninput="this.setCustomValidity('')">
+                    <div class="validation-message">This needs to be a valid link.</div>
+                </div>
+            </div>
+        </div>
 
 
-<div class="card">
-<div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span class="label">Experience</span><button type="button" class="btn-sec" onclick="addExp()">+ Add</button></div>
-<div id="exp-container"></div>
-</div>
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span class="label">Experience</span><button type="button" class="btn-sec" onclick="addExp()">+ Add</button></div>
+            <div id="exp-container"></div>
+        </div>
 
 
-<div class="card">
-<div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span class="label">Projects</span><button type="button" class="btn-sec" onclick="addProj()">+ Add</button></div>
-<div id="proj-container"></div>
-</div>
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span class="label">Projects</span><button type="button" class="btn-sec" onclick="addProj()">+ Add</button></div>
+            <div id="proj-container"></div>
+        </div>
 
         <button type="submit" class="btn-primary">Generate Portfolio &rarr;</button>
     </form>
@@ -303,9 +349,22 @@ textarea:invalid + .validation-message {
     // Initialize with one experience and one project
     addExp(); 
     addProj();
+
+    // --- ANIMATION LOGIC ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        const submitBtn = document.querySelector('.btn-primary');
+
+        if (form && submitBtn) {
+            form.addEventListener('submit', function(e) {
+                // This event only fires if the browser's built-in validation passes.
+                // We add the class to start the spinner.
+                submitBtn.classList.add('is-loading');
+            });
+        }
+    });
 </script>
 
-<!-- Feedback Button -->
 <div class="feedback-widget">
     <button class="feedback-btn" style="position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; background: #0071e3; color: white; border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 999; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: all 0.3s ease;">
         ❔

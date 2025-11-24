@@ -159,6 +159,90 @@
             color: #ff3b30;
         }
 
+        /* Loading Animation */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0071e3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1d1d1f;
+            text-align: center;
+        }
+
+        .loading-progress {
+            width: 200px;
+            height: 4px;
+            background: #f0f0f0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: #0071e3;
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: progressAnimation 2s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes progressAnimation {
+            0% { width: 0%; }
+            50% { width: 100%; }
+            100% { width: 0%; }
+        }
+
+        /* Portfolio Update Animation */
+        .portfolio-updating {
+            text-align: center;
+        }
+
+        .portfolio-updating .step {
+            margin: 15px 0;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        .portfolio-updating .step:nth-child(1) { animation-delay: 0.2s; }
+        .portfolio-updating .step:nth-child(2) { animation-delay: 0.8s; }
+        .portfolio-updating .step:nth-child(3) { animation-delay: 1.4s; }
+        .portfolio-updating .step:nth-child(4) { animation-delay: 2s; }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         /* --- MOBILE RESPONSIVENESS --- */
         @media (max-width: 768px) {
             body { padding: 20px 15px; }
@@ -252,7 +336,7 @@
         <h1>Edit Portfolio: {{ p.name }}</h1>
     </header>
 
-    <form method="POST" action="{{ url_for('edit', p_id=p.id) }}" enctype="multipart/form-data">
+    <form method="POST" action="{{ url_for('edit', p_id=p.id) }}" enctype="multipart/form-data" id="main-form">
         
         <!-- === THEME SELECTION === -->
         <div class="card">
@@ -354,6 +438,7 @@
             
             <span class="label required">Bio</span>
             <textarea name="bio" rows="3" placeholder="Short bio..." required>{{ p.bio }}</textarea>
+            <div class="validation-message">Please fill this field.</div>
             
             <div class="row">
                 <div style="flex:1">
@@ -512,6 +597,21 @@
     </form>
 </div>
 
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="portfolio-updating">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Updating Your Portfolio</div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar"></div>
+        </div>
+        <div class="step">🎨 Applying your theme...</div>
+        <div class="step">📝 Processing your content...</div>
+        <div class="step">🚀 Optimizing for performance...</div>
+        <div class="step">✨ Final touches...</div>
+    </div>
+</div>
+
 <!-- Feedback Widget -->
 <div class="feedback-widget">
     <button class="feedback-btn">❔</button>
@@ -610,8 +710,48 @@
         document.getElementById('proj-container').appendChild(d);
     }
 
-    // Feedback Widget Functionality
+    // Loading Animation and Form Validation
     document.addEventListener('DOMContentLoaded', function() {
+        const mainForm = document.getElementById('main-form');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        
+        if (mainForm) {
+            mainForm.addEventListener('submit', function(e) {
+                // Basic form validation
+                const requiredFields = mainForm.querySelectorAll('[required]');
+                let isValid = true;
+                
+                requiredFields.forEach(field => {
+                    if (!field.value.trim()) {
+                        isValid = false;
+                        field.style.borderColor = '#ff3b30';
+                    }
+                });
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    alert('Please fill in all required fields.');
+                    return;
+                }
+                
+                // Show loading animation
+                loadingOverlay.style.display = 'flex';
+                
+                // The form will continue with submission
+            });
+        }
+        
+        // Add form validation styling
+        const inputs = document.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                if (this.value.trim()) {
+                    this.style.borderColor = '#d2d2d7';
+                }
+            });
+        });
+
+        // Feedback Widget Functionality
         const feedbackBtn = document.querySelector('.feedback-btn');
         const feedbackModal = document.querySelector('.feedback-modal');
         const cancelFeedback = document.querySelector('.cancel-feedback');

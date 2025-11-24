@@ -7,10 +7,10 @@ import base64
 import qrcode
 import os
 import requests
-import traceback  # Add this import
+import traceback
 from dotenv import load_dotenv
 
-load_dotenv() 
+load_dotenv()
 
 # --- APP SETUP ---
 app = Flask(__name__)
@@ -19,20 +19,21 @@ database_uri = os.environ.get('DATABASE_URL')
 if database_uri and database_uri.startswith("postgres://"):
     database_uri = database_uri.replace("postgres://", "postgresql://", 1)
 
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'b42907f1d8325fda2d3fcd6917c2f910437602425099d321c9dab187b04d89a5y') 
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'b42907f1d8325fda2d3fcd6917c2f910437602425099d321c9dab187b04d89a5y')
 
 # Fixed database configuration
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = database_uri or f'sqlite:///{os.path.join(basedir, "instance", "portfolios.db")}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-# ADD THIS - Database connection pooling for production
+# --- CRITICAL FIX FOR SUPABASE POOLER ---
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_recycle': 300,
     'pool_pre_ping': True,
     'pool_size': 10,
     'max_overflow': 20,
+    'connect_args': {'options': '-c search_path=public'} # <--- THIS IS THE MAGIC LINE YOU WERE MISSING
 }
 
 db = SQLAlchemy(app)
@@ -67,7 +68,7 @@ class Portfolio(db.Model):
     linkedin = db.Column(db.String(100))
     skills = db.Column(db.String(200))
     
-    theme_preset = db.Column(db.String(50), default="cupertino") 
+    theme_preset = db.Column(db.String(50), default="cupertino")
     custom_accent_color = db.Column(db.String(7), nullable=True)
     
     profile_pic = db.Column(db.Text, nullable=True)
@@ -100,15 +101,13 @@ class Experience(db.Model):
 # --- DATABASE INITIALIZATION ---
 with app.app_context():
     instance_dir = os.path.join(basedir, 'instance')
-    if not os.path.exists(instance_dir):
-        os.makedirs(instance_dir)
-    db.create_all()
+    # db.create_all() # Keeping this commented out as you are using Supabase
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# ADD THIS - Health check endpoint to keep database alive
+# Health check endpoint
 @app.route('/health')
 def health_check():
     try:
@@ -117,7 +116,7 @@ def health_check():
     except Exception as e:
         return f'Database error: {str(e)}', 500
 
-# ADD THIS - Better error handling
+# Error handling
 @app.errorhandler(500)
 def internal_error(error):
     return f"""
@@ -332,7 +331,7 @@ def auth_github_callback():
 
 @app.route('/dashboard')
 @login_required
-def dashboard(): 
+def dashboard():
     return render_template('dashboard.html', portfolios=current_user.portfolios)
 
 @app.route('/create', methods=['GET', 'POST'])
@@ -340,31 +339,34 @@ def dashboard():
 def create():
     if request.method == 'POST':
         try:
-            # Test database connection first
-            try:
-                db.session.execute('SELECT 1')
-            except Exception as db_error:
-                print(f"Database connection error: {db_error}")
-                # Try to reconnect
-                db.session.remove()
-                try:
-                    db.session.execute('SELECT 1')
-                except:
-                    flash('Database connection issue. Please try again.', 'error')
+            # Validate required fields
+            required_fields = ['name', 'role', 'bio', 'email']
+            for field in required_fields:
+                if not request.form.get(field):
+                    flash(f'{field.capitalize()} is required', 'error')
                     return redirect(url_for('create'))
             
             # Files
             pic_data = None
-            if request.files.get('profile_pic'):
-                f = request.files['profile_pic']
-                if f.filename: 
-                    pic_data = f"data:{f.mimetype};base64,{base64.b64encode(f.read()).decode('utf-8')}"
-            
+            profile_pic_file = request.files.get('profile_pic')
+            if profile_pic_file and profile_pic_file.filename:
+                try:
+                    pic_data = f"data:{profile_pic_file.mimetype};base64,{base64.b64encode(profile_pic_file.read()).decode('utf-8')}"
+                except Exception as e:
+                    flash('Error processing profile picture', 'error')
+                    return redirect(url_for('create'))
+
             res_data = None
-            if request.files.get('resume'):
-                f = request.files['resume']
-                if f.filename and f.mimetype=='application/pdf': 
-                    res_data = f"data:application/pdf;base64,{base64.b64encode(f.read()).decode('utf-8')}"
+            resume_file = request.files.get('resume')
+            if resume_file and resume_file.filename:
+                try:
+                    if resume_file.mimetype != 'application/pdf':
+                        flash('Resume must be a PDF file', 'error')
+                        return redirect(url_for('create'))
+                    res_data = f"data:application/pdf;base64,{base64.b64encode(resume_file.read()).decode('utf-8')}"
+                except Exception as e:
+                    flash('Error processing resume file', 'error')
+                    return redirect(url_for('create'))
 
             # Get theme preset
             theme_preset = request.form.get('theme_preset', 'cupertino')
@@ -372,47 +374,62 @@ def create():
             if theme_preset == 'custom':
                 custom_color = request.form.get('custom_accent_color', '#0071e3')
             
+            # Create portfolio
             new_portfolio = Portfolio(
-                name=request.form.get('name', ''),
-                role=request.form.get('role', ''),
-                bio=request.form.get('bio', ''),
-                email=request.form.get('email', ''),
-                github=request.form.get('github', ''),
-                linkedin=request.form.get('linkedin', ''),
-                skills=request.form.get('skills', ''),
+                name=request.form.get('name', '').strip(),
+                role=request.form.get('role', '').strip(),
+                bio=request.form.get('bio', '').strip(),
+                email=request.form.get('email', '').strip(),
+                github=request.form.get('github', '').strip(),
+                linkedin=request.form.get('linkedin', '').strip(),
+                skills=request.form.get('skills', '').strip(),
                 theme_preset=theme_preset,
                 custom_accent_color=custom_color,
-                formspree_id=request.form.get('formspree_id', ''),
-                live_url=request.form.get('live_url', ''),
+                formspree_id=request.form.get('formspree_id', '').strip(),
+                live_url=request.form.get('live_url', '').strip(),
                 profile_pic=pic_data,
                 resume_data=res_data,
                 user_id=current_user.id
             )
+            
             db.session.add(new_portfolio)
             db.session.flush()
 
-            # Projects
-            for i, t in enumerate(request.form.getlist('project_title[]')):
-                if t.strip():
-                    db.session.add(Project(
-                        title=t,
-                        desc=request.form.getlist('project_desc[]')[i],
-                        link=request.form.getlist('project_link[]')[i],
-                        tech=request.form.getlist('project_tech[]')[i],
-                        portfolio_id=new_portfolio.id
-                    ))
+            # --- SAFER LOOP FOR PROJECTS ---
+            titles = request.form.getlist('project_title[]')
+            descriptions = request.form.getlist('project_desc[]')
+            links = request.form.getlist('project_link[]')
+            techs = request.form.getlist('project_tech[]')
             
-            # Experiences
-            for i, c in enumerate(request.form.getlist('exp_company[]')):
-                if c.strip():
-                    db.session.add(Experience(
-                        company=c,
-                        position=request.form.getlist('exp_position[]')[i],
-                        duration=request.form.getlist('exp_duration[]')[i],
-                        desc=request.form.getlist('exp_desc[]')[i],
+            for i in range(len(titles)):
+                if titles[i].strip():
+                    project = Project(
+                        title=titles[i].strip(),
+                        desc=descriptions[i] if i < len(descriptions) else '',
+                        link=links[i] if i < len(links) else '',
+                        tech=techs[i] if i < len(techs) else '',
                         portfolio_id=new_portfolio.id
-                    ))
+                    )
+                    db.session.add(project)
 
+            # --- SAFER LOOP FOR EXPERIENCES ---
+            companies = request.form.getlist('exp_company[]')
+            positions = request.form.getlist('exp_position[]')
+            durations = request.form.getlist('exp_duration[]')
+            descriptions = request.form.getlist('exp_desc[]')
+            
+            for i in range(len(companies)):
+                if companies[i].strip():
+                    experience = Experience(
+                        company=companies[i].strip(),
+                        position=positions[i] if i < len(positions) else '',
+                        duration=durations[i] if i < len(durations) else '',
+                        desc=descriptions[i] if i < len(descriptions) else '',
+                        portfolio_id=new_portfolio.id
+                    )
+                    db.session.add(experience)
+
+            # Final commit
             db.session.commit()
             flash('Portfolio created successfully!', 'success')
             return redirect(url_for('preview', p_id=new_portfolio.id))
@@ -420,7 +437,8 @@ def create():
         except Exception as e:
             db.session.rollback()
             print(f"Error creating portfolio: {str(e)}")
-            flash(f'Error creating portfolio. Please try again.', 'error')
+            print(traceback.format_exc())
+            flash(f'Error creating portfolio: {str(e)}', 'error')
             return redirect(url_for('create'))
     
     return render_template('generator.html')
@@ -434,18 +452,6 @@ def edit(p_id):
     
     if request.method == 'POST':
         try:
-            # Test database connection first
-            try:
-                db.session.execute('SELECT 1')
-            except Exception as db_error:
-                print(f"Database connection error: {db_error}")
-                db.session.remove()
-                try:
-                    db.session.execute('SELECT 1')
-                except:
-                    flash('Database connection issue. Please try again.', 'error')
-                    return redirect(url_for('edit', p_id=p_id))
-            
             # Update basic info
             p.name = request.form['name']
             p.role = request.form['role']
@@ -475,28 +481,36 @@ def edit(p_id):
             Project.query.filter_by(portfolio_id=p.id).delete()
             Experience.query.filter_by(portfolio_id=p.id).delete()
             
-            # Add updated projects
+            # --- SAFER LOOP FOR UPDATING PROJECTS ---
             titles = request.form.getlist('project_title[]')
+            descriptions = request.form.getlist('project_desc[]')
+            links = request.form.getlist('project_link[]')
+            techs = request.form.getlist('project_tech[]')
+            
             for i, title in enumerate(titles):
                 if title.strip():
                     proj = Project(
                         title=title,
-                        desc=request.form.getlist('project_desc[]')[i],
-                        link=request.form.getlist('project_link[]')[i],
-                        tech=request.form.getlist('project_tech[]')[i],
+                        desc=descriptions[i] if i < len(descriptions) else '',
+                        link=links[i] if i < len(links) else '',
+                        tech=techs[i] if i < len(techs) else '',
                         portfolio_id=p.id
                     )
                     db.session.add(proj)
             
-            # Add updated experiences
+            # --- SAFER LOOP FOR UPDATING EXPERIENCES ---
             companies = request.form.getlist('exp_company[]')
+            positions = request.form.getlist('exp_position[]')
+            durations = request.form.getlist('exp_duration[]')
+            descs = request.form.getlist('exp_desc[]')
+
             for i, company in enumerate(companies):
                 if company.strip():
                     exp = Experience(
                         company=company,
-                        position=request.form.getlist('exp_position[]')[i],
-                        duration=request.form.getlist('exp_duration[]')[i],
-                        desc=request.form.getlist('exp_desc[]')[i],
+                        position=positions[i] if i < len(positions) else '',
+                        duration=durations[i] if i < len(durations) else '',
+                        desc=descs[i] if i < len(descs) else '',
                         portfolio_id=p.id
                     )
                     db.session.add(exp)
@@ -506,6 +520,7 @@ def edit(p_id):
             return redirect(url_for('preview', p_id=p.id))
         except Exception as e:
             db.session.rollback()
+            print(f"Error updating portfolio: {str(e)}")
             flash('Error updating portfolio', 'error')
             return redirect(url_for('edit', p_id=p.id))
     
