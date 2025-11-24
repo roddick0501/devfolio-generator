@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Portfolio</title>
-    <!-- Lucide Icons Script -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <title>Edit Portfolio - DevFolio</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">    <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
         :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; }
@@ -135,6 +135,30 @@
             text-decoration: none;
         }
 
+        /* Form Validation Styles */
+        input:invalid, textarea:invalid {
+            border-color: #ff3b30;
+            background: #fff5f5;
+        }
+
+        .validation-message {
+            color: #ff3b30;
+            font-size: 12px;
+            margin: -10px 0 15px 0;
+            display: none;
+        }
+
+        input:invalid + .validation-message,
+        textarea:invalid + .validation-message {
+            display: block;
+        }
+
+        /* Required field indicators */
+        .required::after {
+            content: " *";
+            color: #ff3b30;
+        }
+
         /* --- MOBILE RESPONSIVENESS --- */
         @media (max-width: 768px) {
             body { padding: 20px 15px; }
@@ -151,6 +175,72 @@
             /* 1 column for themes on phones */
             .theme-grid { grid-template-columns: 1fr; }
             h1 { font-size: 24px; }
+        }
+
+        /* Feedback Widget Styles */
+        .feedback-btn {
+            position: fixed; 
+            bottom: 30px; 
+            right: 30px; 
+            width: 60px; 
+            height: 60px; 
+            border-radius: 50%; 
+            background: #0071e3; 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2); 
+            z-index: 999; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 24px; 
+            transition: all 0.3s ease;
+        }
+
+        .feedback-modal {
+            position: fixed; 
+            bottom: 100px; 
+            right: 30px; 
+            width: 350px; 
+            background: white; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1); 
+            padding: 0; 
+            z-index: 1000; 
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .feedback-btn {
+                bottom: 20px;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+            
+            .feedback-modal {
+                bottom: 80px;
+                right: 20px;
+                left: 20px;
+                width: auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .feedback-btn {
+                bottom: 15px;
+                right: 15px;
+                width: 45px;
+                height: 45px;
+            }
+            
+            .feedback-modal {
+                bottom: 70px;
+                right: 15px;
+                left: 15px;
+            }
         }
     </style>
 </head>
@@ -246,10 +336,25 @@
         <div class="card">
             <span class="label">Identity</span>
             <div class="row">
-                <div style="flex:1"><input type="text" name="name" placeholder="Name" value="{{ p.name }}" required></div>
-                <div style="flex:1"><input type="text" name="role" placeholder="Role" value="{{ p.role }}" required></div>
+                <div style="flex:1">
+                    <span class="label required">Name</span>
+                    <input type="text" name="name" placeholder="Name" value="{{ p.name }}" required
+                           oninvalid="this.setCustomValidity('Name can\'t be empty')"
+                           oninput="this.setCustomValidity('')">
+                    <div class="validation-message">Please fill this field.</div>
+                </div>
+                <div style="flex:1">
+                    <span class="label required">Role</span>
+                    <input type="text" name="role" placeholder="Role" value="{{ p.role }}" required
+                           oninvalid="this.setCustomValidity('Role can\'t be empty')"
+                           oninput="this.setCustomValidity('')">
+                    <div class="validation-message">Please fill this field.</div>
+                </div>
             </div>
+            
+            <span class="label required">Bio</span>
             <textarea name="bio" rows="3" placeholder="Short bio..." required>{{ p.bio }}</textarea>
+            
             <div class="row">
                 <div style="flex:1">
                     <span class="label">Photo</span>
@@ -272,7 +377,10 @@
                 </div>
                 <div style="flex:1">
                     <span class="label">Live URL (For QR)</span>
-                    <input type="url" name="live_url" placeholder="e.g. mysite.netlify.app" value="{{ p.live_url or '' }}">
+                    <input type="url" name="live_url" placeholder="e.g. mysite.netlify.app" value="{{ p.live_url or '' }}"
+                           oninvalid="this.setCustomValidity('This needs to be a valid link')"
+                           oninput="this.setCustomValidity('')">
+                    <div class="validation-message">This needs to be a valid link.</div>
                 </div>
             </div>
             <p style="font-size:11px; color:#86868b; margin-top:-10px;">Create a free form at formspree.io to enable the Contact form.</p>
@@ -283,9 +391,27 @@
             <span class="label">Socials & Skills</span>
             <input type="text" name="skills" placeholder="Skills (e.g. Python, React)" value="{{ p.skills or '' }}">
             <div class="row">
-                <div style="flex:1"><input type="email" name="email" placeholder="Email" value="{{ p.email }}" required></div>
-                <div style="flex:1"><input type="url" name="github" placeholder="GitHub" value="{{ p.github or '' }}"></div>
-                <div style="flex:1"><input type="url" name="linkedin" placeholder="LinkedIn" value="{{ p.linkedin or '' }}"></div>
+                <div style="flex:1">
+                    <span class="label required">Email</span>
+                    <input type="email" name="email" placeholder="Email" value="{{ p.email }}" required
+                           oninvalid="this.setCustomValidity('Please enter a valid email')"
+                           oninput="this.setCustomValidity('')">
+                    <div class="validation-message">Please enter a valid email.</div>
+                </div>
+                <div style="flex:1">
+                    <span class="label">GitHub</span>
+                    <input type="url" name="github" placeholder="GitHub" value="{{ p.github or '' }}"
+                           oninvalid="this.setCustomValidity('This needs to be a valid link')"
+                           oninput="this.setCustomValidity('')">
+                    <div class="validation-message">This needs to be a valid link.</div>
+                </div>
+                <div style="flex:1">
+                    <span class="label">LinkedIn</span>
+                    <input type="url" name="linkedin" placeholder="LinkedIn" value="{{ p.linkedin or '' }}"
+                           oninvalid="this.setCustomValidity('This needs to be a valid link')"
+                           oninput="this.setCustomValidity('')">
+                    <div class="validation-message">This needs to be a valid link.</div>
+                </div>
             </div>
         </div>
 
@@ -299,10 +425,28 @@
                 {% for exp in p.experiences %}
                 <div class="entry-box">
                     <div class="row">
-                        <input style="flex:1" name="exp_company[]" placeholder="Company" value="{{ exp.company }}">
-                        <input style="flex:1" name="exp_duration[]" placeholder="Dates" value="{{ exp.duration }}">
+                        <div style="flex:1">
+                            <span class="label required">Company</span>
+                            <input name="exp_company[]" placeholder="Company" value="{{ exp.company }}" required
+                                   oninvalid="this.setCustomValidity('Company name can\'t be empty')"
+                                   oninput="this.setCustomValidity('')">
+                            <div class="validation-message">Please fill this field.</div>
+                        </div>
+                        <div style="flex:1">
+                            <span class="label required">Duration</span>
+                            <input name="exp_duration[]" placeholder="Dates" value="{{ exp.duration }}" required
+                                   oninvalid="this.setCustomValidity('Duration can\'t be empty')"
+                                   oninput="this.setCustomValidity('')">
+                            <div class="validation-message">Please fill this field.</div>
+                        </div>
                     </div>
-                    <input name="exp_position[]" placeholder="Role" value="{{ exp.position }}">
+                    <span class="label required">Position</span>
+                    <input name="exp_position[]" placeholder="Role" value="{{ exp.position }}" required
+                           oninvalid="this.setCustomValidity('Position can\'t be empty')"
+                           oninput="this.setCustomValidity('')">
+                    <div class="validation-message">Please fill this field.</div>
+                    
+                    <span class="label">Description</span>
                     <textarea name="exp_desc[]" rows="2" placeholder="Description">{{ exp.desc }}</textarea>
                     <button type="button" class="btn-remove" onclick="this.parentElement.remove()">Remove</button>
                 </div>
@@ -323,11 +467,31 @@
                 {% for proj in p.projects %}
                 <div class="entry-box">
                     <div class="row">
-                        <input style="flex:1" name="project_title[]" placeholder="Title" value="{{ proj.title }}">
-                        <input style="flex:1" name="project_tech[]" placeholder="Tech Stack" value="{{ proj.tech }}">
+                        <div style="flex:1">
+                            <span class="label required">Title</span>
+                            <input name="project_title[]" placeholder="Title" value="{{ proj.title }}" required
+                                   oninvalid="this.setCustomValidity('Project title can\'t be empty')"
+                                   oninput="this.setCustomValidity('')">
+                            <div class="validation-message">Please fill this field.</div>
+                        </div>
+                        <div style="flex:1">
+                            <span class="label required">Tech Stack</span>
+                            <input name="project_tech[]" placeholder="Tech Stack" value="{{ proj.tech }}" required
+                                   oninvalid="this.setCustomValidity('Tech stack can\'t be empty')"
+                                   oninput="this.setCustomValidity('')">
+                            <div class="validation-message">Please fill this field.</div>
+                        </div>
                     </div>
-                    <textarea name="project_desc[]" rows="2" placeholder="Description">{{ proj.desc }}</textarea>
-                    <input name="project_link[]" placeholder="URL" value="{{ proj.link }}">
+                    <span class="label required">Description</span>
+                    <textarea name="project_desc[]" rows="2" placeholder="Description" required>{{ proj.desc }}</textarea>
+                    <div class="validation-message">Please fill this field.</div>
+                    
+                    <span class="label required">Project URL</span>
+                    <input name="project_link[]" placeholder="URL" value="{{ proj.link }}" required
+                           oninvalid="this.setCustomValidity('Enter a valid URL')"
+                           oninput="this.setCustomValidity('')">
+                    <div class="validation-message">This needs to be a valid link.</div>
+                    
                     <button type="button" class="btn-remove" onclick="this.parentElement.remove()">Remove</button>
                 </div>
                 {% endfor %} 
@@ -348,6 +512,29 @@
     </form>
 </div>
 
+<!-- Feedback Widget -->
+<div class="feedback-widget">
+    <button class="feedback-btn">❔</button>
+    
+    <div class="feedback-modal">
+        <div style="padding: 25px; border-bottom: 1px solid #e5e5e7;">
+            <h4 style="margin: 0 0 8px 0; font-size: 18px;">Send Feedback</h4>
+            <p style="color: #86868b; margin: 0; font-size: 14px;">Found a bug or want to request a feature?</p>
+        </div>
+        
+        <form class="feedback-form" style="padding: 25px;">
+            <input type="text" name="name" placeholder="Name (optional)" style="width: 100%; padding: 12px; border: 1px solid #d2d2d7; border-radius: 10px; margin-bottom: 15px; font-family: inherit;">
+            <input type="email" name="email" placeholder="Email (optional)" style="width: 100%; padding: 12px; border: 1px solid #d2d2d7; border-radius: 10px; margin-bottom: 15px; font-family: inherit;">
+            <textarea name="message" placeholder="Your message..." rows="4" style="width: 100%; padding: 12px; border: 1px solid #d2d2d7; border-radius: 10px; margin-bottom: 15px; font-family: inherit; resize: vertical;" required></textarea>
+            
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="cancel-feedback" style="flex: 1; padding: 12px; border: 1px solid #d2d2d7; border-radius: 10px; background: white; cursor: pointer; font-family: inherit;">Cancel</button>
+                <button type="submit" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: #0071e3; color: white; cursor: pointer; font-family: inherit; font-weight: 600;">Send</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     // INITIALIZE ICONS
     lucide.createIcons();
@@ -358,7 +545,32 @@
         
         let d = document.createElement('div'); 
         d.className='entry-box';
-        d.innerHTML = `<div class="row"><input style="flex:1" name="exp_company[]" placeholder="Company"><input style="flex:1" name="exp_duration[]" placeholder="Dates"></div><input name="exp_position[]" placeholder="Role"><textarea name="exp_desc[]" rows="2" placeholder="Description"></textarea><button type="button" class="btn-remove" onclick="this.parentElement.remove()">Remove</button>`;
+        d.innerHTML = `
+            <div class="row">
+                <div style="flex:1">
+                    <span class="label required">Company</span>
+                    <input name="exp_company[]" placeholder="Company" required
+                           oninvalid="this.setCustomValidity('Company name can\\'t be empty')"
+                           oninput="this.setCustomValidity('')">
+                    <div class="validation-message">Please fill this field.</div>
+                </div>
+                <div style="flex:1">
+                    <span class="label required">Duration</span>
+                    <input name="exp_duration[]" placeholder="Dates" required
+                           oninvalid="this.setCustomValidity('Duration can\\'t be empty')"
+                           oninput="this.setCustomValidity('')">
+                    <div class="validation-message">Please fill this field.</div>
+                </div>
+            </div>
+            <span class="label required">Position</span>
+            <input name="exp_position[]" placeholder="Role" required
+                   oninvalid="this.setCustomValidity('Position can\\'t be empty')"
+                   oninput="this.setCustomValidity('')">
+            <div class="validation-message">Please fill this field.</div>
+            <span class="label">Description</span>
+            <textarea name="exp_desc[]" rows="2" placeholder="Description"></textarea>
+            <button type="button" class="btn-remove" onclick="this.parentElement.remove()">Remove</button>
+        `;
         document.getElementById('exp-container').appendChild(d);
     }
     
@@ -368,9 +580,68 @@
         
         let d = document.createElement('div'); 
         d.className='entry-box';
-        d.innerHTML = `<div class="row"><input style="flex:1" name="project_title[]" placeholder="Title"><input style="flex:1" name="project_tech[]" placeholder="Tech Stack"></div><textarea name="project_desc[]" rows="2" placeholder="Description"></textarea><input name="project_link[]" placeholder="URL"><button type="button" class="btn-remove" onclick="this.parentElement.remove()">Remove</button>`;
+        d.innerHTML = `
+            <div class="row">
+                <div style="flex:1">
+                    <span class="label required">Title</span>
+                    <input name="project_title[]" placeholder="Title" required
+                           oninvalid="this.setCustomValidity('Project title can\\'t be empty')"
+                           oninput="this.setCustomValidity('')">
+                    <div class="validation-message">Please fill this field.</div>
+                </div>
+                <div style="flex:1">
+                    <span class="label required">Tech Stack</span>
+                    <input name="project_tech[]" placeholder="Tech Stack" required
+                           oninvalid="this.setCustomValidity('Tech stack can\\'t be empty')"
+                           oninput="this.setCustomValidity('')">
+                    <div class="validation-message">Please fill this field.</div>
+                </div>
+            </div>
+            <span class="label required">Description</span>
+            <textarea name="project_desc[]" rows="2" placeholder="Description" required></textarea>
+            <div class="validation-message">Please fill this field.</div>
+            <span class="label required">Project URL</span>
+            <input name="project_link[]" placeholder="URL" required
+                   oninvalid="this.setCustomValidity('Enter a valid URL')"
+                   oninput="this.setCustomValidity('')">
+            <div class="validation-message">This needs to be a valid link.</div>
+            <button type="button" class="btn-remove" onclick="this.parentElement.remove()">Remove</button>
+        `;
         document.getElementById('proj-container').appendChild(d);
     }
+
+    // Feedback Widget Functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const feedbackBtn = document.querySelector('.feedback-btn');
+        const feedbackModal = document.querySelector('.feedback-modal');
+        const cancelFeedback = document.querySelector('.cancel-feedback');
+        const feedbackForm = document.querySelector('.feedback-form');
+        
+        if (feedbackBtn) {
+            feedbackBtn.addEventListener('click', () => {
+                feedbackModal.style.display = feedbackModal.style.display === 'block' ? 'none' : 'block';
+            });
+            
+            cancelFeedback.addEventListener('click', () => {
+                feedbackModal.style.display = 'none';
+            });
+            
+            feedbackForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                // Here you would typically send the feedback to your server
+                alert('Thanks for your feedback!');
+                feedbackModal.style.display = 'none';
+                feedbackForm.reset();
+            });
+            
+            // Close modal when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!feedbackModal.contains(e.target) && e.target !== feedbackBtn) {
+                    feedbackModal.style.display = 'none';
+                }
+            });
+        }
+    });
 </script>
 </body>
 </html>

@@ -105,7 +105,10 @@ def load_user(user_id):
 
 @app.route('/')
 def home():
-    return redirect(url_for('dashboard')) if current_user.is_authenticated else redirect(url_for('login'))
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    else:
+        return render_template('index.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -130,7 +133,7 @@ def login():
 
 @app.route('/logout')
 @login_required
-def logout(): logout_user(); return redirect(url_for('login'))
+def logout(): logout_user(); return redirect(url_for('home'))
 
 # --- OAUTH ROUTES ---
 
@@ -310,8 +313,8 @@ def auth_github_callback():
 
 @app.route('/dashboard')
 @login_required
-def dashboard(): return render_template('dashboard.html', portfolios=current_user.portfolios)
-
+def dashboard(): 
+    return render_template('dashboard.html', portfolios=current_user.portfolios)
 
 @app.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -438,7 +441,6 @@ def delete(p_id):
     db.session.delete(p); db.session.commit()
     return redirect(url_for('dashboard'))
 
-
 @app.route('/qr/<int:p_id>')
 def qr_code(p_id):
     p = Portfolio.query.get_or_404(p_id)
@@ -465,6 +467,33 @@ def download(p_id):
     mem.write(rendered.encode('utf-8'))
     mem.seek(0)
     return send_file(mem, as_attachment=True, download_name=f"{p.name.replace(' ','_')}_portfolio.html", mimetype='text/html')
+
+@app.route('/sample')
+def sample():
+    """Sample portfolio for landing page preview"""
+    # Create a dummy portfolio object for the sample
+    class SamplePortfolio:
+        def __init__(self):
+            self.id = 1
+            self.name = "Alex Chen"
+            self.role = "Full Stack Developer"
+            self.bio = "Passionate about building scalable web applications with modern technologies. 5+ years of experience in full-stack development."
+            self.email = "alex.chen@example.com"
+            self.github = "https://github.com/alexchen"
+            self.linkedin = "https://linkedin.com/in/alexchen"
+            self.skills = "JavaScript, React, Node.js, Python, PostgreSQL"
+            self.theme_preset = "cupertino"
+            self.custom_accent_color = None
+            self.profile_pic = None
+            self.resume_data = None
+            self.formspree_id = "xqwerty"
+            self.live_url = "https://alexchen.dev"
+            self.experiences = []
+            self.projects = []
+    
+    sample_portfolio = SamplePortfolio()
+    skills = [s.strip() for s in sample_portfolio.skills.split(',')] if sample_portfolio.skills else []
+    return render_template('portfolio.html', p=sample_portfolio, skills=skills, preview=False)
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Studio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Portfolio Studio - DevFolio</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
+
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
@@ -107,6 +111,32 @@
             .theme-grid { grid-template-columns: 1fr; }
             h1 { font-size: 24px; }
         }
+
+        /* Form Validation Styles */
+input:invalid, textarea:invalid {
+    border-color: #ff3b30;
+    background: #fff5f5;
+}
+
+.validation-message {
+    color: #ff3b30;
+    font-size: 12px;
+    margin: -10px 0 15px 0;
+    display: none;
+}
+
+input:invalid + .validation-message,
+textarea:invalid + .validation-message {
+    display: block;
+}
+
+/* Required field indicators */
+.required::after {
+    content: " *";
+    color: #ff3b30;
+}
+
+
     </style>
 </head>
 <body>
@@ -197,36 +227,56 @@
         </div>
 
         <div class="card">
-            <span class="label">Identity</span>
-            <div class="row"><div style="flex:1"><input type="text" name="name" placeholder="Name" required></div><div style="flex:1"><input type="text" name="role" placeholder="Role" required></div></div>
-            <textarea name="bio" rows="3" placeholder="Short bio..." required></textarea>
-            <div class="row"><div style="flex:1"><span class="label">Photo</span><input type="file" name="profile_pic" accept="image/*"></div><div style="flex:1"><span class="label">Resume (PDF)</span><input type="file" name="resume" accept="application/pdf"></div></div>
-        </div>
-        
-        <div class="card">
-            <span class="label">Connect (Optional)</span>
-            <div class="row">
-                <div style="flex:1"><span class="label">Formspree ID</span><input type="text" name="formspree_id" placeholder="e.g. xnjkql"></div>
-                <div style="flex:1"><span class="label">Live URL (For QR)</span><input type="url" name="live_url" placeholder="e.g. mysite.netlify.app"></div>
-            </div>
-            <p style="font-size:11px; color:#86868b; margin-top:-10px;">Create a free form at formspree.io to enable the Contact form.</p>
-        </div>
+<span class="label required">Identity</span>
+<div class="row">
+<div style="flex:1">
+<input type="text" name="name" placeholder="Name" required oninvalid="this.setCustomValidity('Name can’t be empty')" oninput="this.setCustomValidity('')">
+<div class="validation-message">Please fill this field.</div>
+</div>
+<div style="flex:1">
+<input type="text" name="role" placeholder="Role" required oninvalid="this.setCustomValidity('Role can’t be empty')" oninput="this.setCustomValidity('')">
+<div class="validation-message">Please fill this field.</div>
+</div>
+</div>
+<textarea name="bio" rows="3" placeholder="Short bio..." required oninvalid="this.setCustomValidity('Bio can’t be empty')" oninput="this.setCustomValidity('')"></textarea>
+<div class="validation-message">Please fill this field.</div>
+<div class="row">
+<div style="flex:1"><span class="label">Photo</span><input type="file" name="profile_pic" accept="image/*"></div>
+<div style="flex:1"><span class="label">Resume (PDF)</span><input type="file" name="resume" accept="application/pdf"></div>
+</div>
+</div>
 
-        <div class="card">
-            <span class="label">Socials & Skills</span>
-            <input type="text" name="skills" placeholder="Skills (e.g. Python, React)">
-            <div class="row"><div style="flex:1"><input type="email" name="email" placeholder="Email"></div><div style="flex:1"><input type="url" name="github" placeholder="GitHub"></div><div style="flex:1"><input type="url" name="linkedin" placeholder="LinkedIn"></div></div>
-        </div>
 
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span class="label">Experience</span><button type="button" class="btn-sec" onclick="addExp()">+ Add</button></div>
-            <div id="exp-container"></div>
-        </div>
+<div class="card">
+<span class="label">Connect (Optional)</span>
+<div class="row">
+<div style="flex:1"><span class="label">Formspree ID</span><input type="text" name="formspree_id" placeholder="e.g. xnjkql"></div>
+<div style="flex:1"><span class="label">Live URL (For QR)</span><input type="url" name="live_url" placeholder="e.g. mysite.netlify.app" oninvalid="this.setCustomValidity('This needs to be a valid link')" oninput="this.setCustomValidity('')"><div class="validation-message">This needs to be a valid link.</div></div>
+</div>
+</div>
 
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span class="label">Projects</span><button type="button" class="btn-sec" onclick="addProj()">+ Add</button></div>
-            <div id="proj-container"></div>
-        </div>
+
+<div class="card">
+<span class="label">Socials & Skills</span>
+<input type="text" name="skills" placeholder="Skills (e.g. Python, React)">
+<div class="row">
+<div style="flex:1"><input type="email" name="email" placeholder="Email" required oninvalid="this.setCustomValidity('Enter a valid email')" oninput="this.setCustomValidity('')"><div class="validation-message">Enter a valid email.</div></div>
+<div style="flex:1"><input type="url" name="github" placeholder="GitHub" oninvalid="this.setCustomValidity('This needs to be a valid link')" oninput="this.setCustomValidity('')"><div class="validation-message">This needs to be a valid link.</div></div>
+<div style="flex:1"><input type="url" name="linkedin" placeholder="LinkedIn" oninvalid="this.setCustomValidity('This needs to be a valid link')" oninput="this.setCustomValidity('')"><div class="validation-message">This needs to be a valid link.</div></div>
+</div>
+</div>
+
+
+<div class="card">
+<div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span class="label">Experience</span><button type="button" class="btn-sec" onclick="addExp()">+ Add</button></div>
+<div id="exp-container"></div>
+</div>
+
+
+<div class="card">
+<div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span class="label">Projects</span><button type="button" class="btn-sec" onclick="addProj()">+ Add</button></div>
+<div id="proj-container"></div>
+</div>
 
         <button type="submit" class="btn-primary">Generate Portfolio &rarr;</button>
     </form>
@@ -254,5 +304,98 @@
     addExp(); 
     addProj();
 </script>
+
+<!-- Feedback Button -->
+<div class="feedback-widget">
+    <button class="feedback-btn" style="position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; background: #0071e3; color: white; border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 999; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: all 0.3s ease;">
+        ❔
+    </button>
+    
+    <div class="feedback-modal" style="position: fixed; bottom: 100px; right: 30px; width: 350px; background: white; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); padding: 0; z-index: 1000; display: none;">
+        <div style="padding: 25px; border-bottom: 1px solid #e5e5e7;">
+            <h4 style="margin: 0 0 8px 0; font-size: 18px;">Send Feedback</h4>
+            <p style="color: #86868b; margin: 0; font-size: 14px;">Found a bug or want to request a feature?</p>
+        </div>
+        
+        <form class="feedback-form" style="padding: 25px;">
+            <input type="text" name="name" placeholder="Name (optional)" style="width: 100%; padding: 12px; border: 1px solid #d2d2d7; border-radius: 10px; margin-bottom: 15px; font-family: inherit;">
+            <input type="email" name="email" placeholder="Email (optional)" style="width: 100%; padding: 12px; border: 1px solid #d2d2d7; border-radius: 10px; margin-bottom: 15px; font-family: inherit;">
+            <textarea name="message" placeholder="Your message..." rows="4" style="width: 100%; padding: 12px; border: 1px solid #d2d2d7; border-radius: 10px; margin-bottom: 15px; font-family: inherit; resize: vertical;" required></textarea>
+            
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="cancel-feedback" style="flex: 1; padding: 12px; border: 1px solid #d2d2d7; border-radius: 10px; background: white; cursor: pointer; font-family: inherit;">Cancel</button>
+                <button type="submit" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: #0071e3; color: white; cursor: pointer; font-family: inherit; font-weight: 600;">Send</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const feedbackBtn = document.querySelector('.feedback-btn');
+    const feedbackModal = document.querySelector('.feedback-modal');
+    const cancelFeedback = document.querySelector('.cancel-feedback');
+    const feedbackForm = document.querySelector('.feedback-form');
+    
+    if (feedbackBtn) {
+        feedbackBtn.addEventListener('click', () => {
+            feedbackModal.style.display = feedbackModal.style.display === 'block' ? 'none' : 'block';
+        });
+        
+        cancelFeedback.addEventListener('click', () => {
+            feedbackModal.style.display = 'none';
+        });
+        
+        feedbackForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            // Here you would typically send the feedback to your server
+            alert('Thanks for your feedback!');
+            feedbackModal.style.display = 'none';
+            feedbackForm.reset();
+        });
+        
+        // Close modal when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!feedbackModal.contains(e.target) && e.target !== feedbackBtn) {
+                feedbackModal.style.display = 'none';
+            }
+        });
+    }
+});
+</script>
+
+<style>
+@media (max-width: 768px) {
+    .feedback-btn {
+        bottom: 20px !important;
+        right: 20px !important;
+        width: 50px !important;
+        height: 50px !important;
+        font-size: 20px !important;
+    }
+    
+    .feedback-modal {
+        bottom: 80px !important;
+        right: 20px !important;
+        left: 20px !important;
+        width: auto !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .feedback-btn {
+        bottom: 15px !important;
+        right: 15px !important;
+        width: 45px !important;
+        height: 45px !important;
+    }
+    
+    .feedback-modal {
+        bottom: 70px !important;
+        right: 15px !important;
+        left: 15px !important;
+    }
+}
+</style>
 </body>
 </html>

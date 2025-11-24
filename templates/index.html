@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevFolio - Build Your Developer Portfolio</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            padding: 30px 0 20px 0;
+            text-align: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 40px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #1d1d1f;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            color: #0071e3;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 40px 0 60px 0;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            font-weight: 700;
+            margin-bottom: 20px;
+            letter-spacing: -1px;
+            line-height: 1.1;
+        }
+
+        .hero p {
+            font-size: clamp(1.1rem, 2vw, 1.3rem);
+            color: #86868b;
+            margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background: #0071e3;
+            color: white;
+            padding: 16px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 17px;
+            transition: all 0.2s ease;
+            text-align: center;
+            min-width: 140px;
+        }
+
+        .btn-primary:hover {
+            background: #0077ed;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            color: #0071e3;
+            text-decoration: none;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            padding: 8px 0;
+        }
+
+        .btn-secondary:hover {
+            text-decoration: underline;
+        }
+
+        /* Features */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+            gap: 20px;
+            padding: 40px 0 60px 0;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 20px;
+            color: #0071e3;
+        }
+
+        .feature-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .feature-card p {
+            color: #86868b;
+            font-size: 16px;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            color: #86868b;
+            border-top: 1px solid #e5e5e7;
+            margin-top: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 15px;
+            }
+            
+            header {
+                padding: 20px 0 10px 0;
+            }
+            
+            .logo {
+                margin-bottom: 30px;
+                font-size: 20px;
+            }
+            
+            .hero {
+                padding: 20px 0 40px 0;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .btn-primary {
+                width: 100%;
+                max-width: 280px;
+            }
+            
+            .features {
+                padding: 30px 0 40px 0;
+                gap: 15px;
+            }
+            
+            .feature-card {
+                padding: 25px 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .hero p {
+                font-size: 1rem;
+            }
+            
+            .feature-card {
+                padding: 20px 15px;
+            }
+            
+            .feature-icon {
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i data-lucide="folder-code" class="logo-icon"></i>
+                <span>DevFolio</span>
+            </div>
+        </header>
+
+        <section class="hero">
+            <h1>Build Your Developer Portfolio in Minutes</h1>
+            <p>Create a simple, clean portfolio by just filling in your details. No setup. No templates to fight with.</p>
+            
+            <div class="cta-buttons">
+                <a href="{{ url_for('register') }}" class="btn-primary">Get Started</a>
+                <a href="{{ url_for('sample') }}" class="btn-secondary">View sample portfolio →</a>
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="feature-card">
+                <i data-lucide="zap" class="feature-icon"></i>
+                <h3>Fast Setup</h3>
+                <p>Get your portfolio live in under 5 minutes with our streamlined process.</p>
+            </div>
+            
+            <div class="feature-card">
+                <i data-lucide="palette" class="feature-icon"></i>
+                <h3>Beautiful Themes</h3>
+                <p>Choose from multiple professional themes that match your style.</p>
+            </div>
+            
+            <div class="feature-card">
+                <i data-lucide="download" class="feature-icon"></i>
+                <h3>Export Anywhere</h3>
+                <p>Download your portfolio as HTML or deploy with one click.</p>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 DevFolio. Built for developers.</p>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
