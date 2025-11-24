@@ -7,6 +7,7 @@ import base64
 import qrcode
 import os
 import requests
+import traceback  # Add this import
 from dotenv import load_dotenv
 
 load_dotenv() 
@@ -25,6 +26,14 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = database_uri or f'sqlite:///{os.path.join(basedir, "instance", "portfolios.db")}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
+
+# ADD THIS - Database connection pooling for production
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_recycle': 300,
+    'pool_pre_ping': True,
+    'pool_size': 10,
+    'max_overflow': 20,
+}
 
 db = SQLAlchemy(app)
 login_manager = LoginManager()
@@ -99,6 +108,23 @@ with app.app_context():
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# ADD THIS - Health check endpoint to keep database alive
+@app.route('/health')
+def health_check():
+    try:
+        db.session.execute('SELECT 1')
+        return 'OK', 200
+    except Exception as e:
+        return f'Database error: {str(e)}', 500
+
+# ADD THIS - Better error handling
+@app.errorhandler(500)
+def internal_error(error):
+    return f"""
+    <h1>500 Internal Server Error</h1>
+    <pre>{traceback.format_exc()}</pre>
+    """, 500
+
 # --- AUTH ROUTES ---
 
 @app.route('/')
@@ -111,16 +137,21 @@ def home():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        if User.query.filter_by(username=username).first():
-            flash('Username taken')
+        try:
+            username = request.form['username']
+            password = request.form['password']
+            if User.query.filter_by(username=username).first():
+                flash('Username taken')
+                return redirect(url_for('register'))
+            new_user = User(username=username, password=generate_password_hash(password, method='pbkdf2:sha256'))
+            db.session.add(new_user)
+            db.session.commit()
+            login_user(new_user)
+            return redirect(url_for('dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Registration error: {str(e)}')
             return redirect(url_for('register'))
-        new_user = User(username=username, password=generate_password_hash(password, method='pbkdf2:sha256'))
-        db.session.add(new_user)
-        db.session.commit()
-        login_user(new_user)
-        return redirect(url_for('dashboard'))
     return render_template('auth.html', mode='register')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -309,6 +340,19 @@ def dashboard():
 def create():
     if request.method == 'POST':
         try:
+            # Test database connection first
+            try:
+                db.session.execute('SELECT 1')
+            except Exception as db_error:
+                print(f"Database connection error: {db_error}")
+                # Try to reconnect
+                db.session.remove()
+                try:
+                    db.session.execute('SELECT 1')
+                except:
+                    flash('Database connection issue. Please try again.', 'error')
+                    return redirect(url_for('create'))
+            
             # Files
             pic_data = None
             if request.files.get('profile_pic'):
@@ -390,6 +434,18 @@ def edit(p_id):
     
     if request.method == 'POST':
         try:
+            # Test database connection first
+            try:
+                db.session.execute('SELECT 1')
+            except Exception as db_error:
+                print(f"Database connection error: {db_error}")
+                db.session.remove()
+                try:
+                    db.session.execute('SELECT 1')
+                except:
+                    flash('Database connection issue. Please try again.', 'error')
+                    return redirect(url_for('edit', p_id=p_id))
+            
             # Update basic info
             p.name = request.form['name']
             p.role = request.form['role']
