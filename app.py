@@ -43,9 +43,9 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=True)
-    password = db.Column(db.String(200), nullable=True)  # Nullable for OAuth users
-    auth_provider = db.Column(db.String(20), default='local')  # 'local', 'google', 'github'
-    auth_id = db.Column(db.String(100), nullable=True)  # OAuth provider ID
+    password = db.Column(db.String(200), nullable=True)
+    auth_provider = db.Column(db.String(20), default='local')
+    auth_id = db.Column(db.String(100), nullable=True)
     portfolios = db.relationship('Portfolio', backref='author', lazy=True)
 
 class Portfolio(db.Model):
@@ -90,11 +90,9 @@ class Experience(db.Model):
 
 # --- DATABASE INITIALIZATION ---
 with app.app_context():
-    # Ensure instance directory exists
     instance_dir = os.path.join(basedir, 'instance')
     if not os.path.exists(instance_dir):
         os.makedirs(instance_dir)
-    
     db.create_all()
 
 @login_manager.user_loader
@@ -116,9 +114,12 @@ def register():
         username = request.form['username']
         password = request.form['password']
         if User.query.filter_by(username=username).first():
-            flash('Username taken'); return redirect(url_for('register'))
+            flash('Username taken')
+            return redirect(url_for('register'))
         new_user = User(username=username, password=generate_password_hash(password, method='pbkdf2:sha256'))
-        db.session.add(new_user); db.session.commit(); login_user(new_user)
+        db.session.add(new_user)
+        db.session.commit()
+        login_user(new_user)
         return redirect(url_for('dashboard'))
     return render_template('auth.html', mode='register')
 
@@ -127,24 +128,25 @@ def login():
     if request.method == 'POST':
         user = User.query.filter_by(username=request.form['username']).first()
         if user and user.auth_provider == 'local' and check_password_hash(user.password, request.form['password']):
-            login_user(user); return redirect(url_for('dashboard'))
+            login_user(user)
+            return redirect(url_for('dashboard'))
         flash('Invalid credentials')
     return render_template('auth.html', mode='login')
 
 @app.route('/logout')
 @login_required
-def logout(): logout_user(); return redirect(url_for('home'))
+def logout():
+    logout_user()
+    return redirect(url_for('home'))
 
 # --- OAUTH ROUTES ---
 
 @app.route('/auth/google')
 def auth_google():
-    """Initiate Google OAuth flow"""
     if not GOOGLE_CLIENT_ID:
         flash('Google authentication is not configured', 'error')
         return redirect(url_for('login'))
     
-    # Google OAuth 2.0 endpoint
     google_auth_url = (
         "https://accounts.google.com/o/oauth2/v2/auth?"
         f"client_id={GOOGLE_CLIENT_ID}&"
@@ -156,14 +158,12 @@ def auth_google():
 
 @app.route('/auth/google/callback')
 def auth_google_callback():
-    """Google OAuth callback"""
     code = request.args.get('code')
     if not code:
         flash('Authentication failed', 'error')
         return redirect(url_for('login'))
     
     try:
-        # Exchange code for tokens
         token_url = "https://oauth2.googleapis.com/token"
         token_data = {
             'client_id': GOOGLE_CLIENT_ID,
@@ -180,24 +180,19 @@ def auth_google_callback():
             flash('Authentication failed', 'error')
             return redirect(url_for('login'))
         
-        # Get user info
         userinfo_url = "https://www.googleapis.com/oauth2/v2/userinfo"
         headers = {'Authorization': f"Bearer {token_json['access_token']}"}
         userinfo_response = requests.get(userinfo_url, headers=headers)
         userinfo = userinfo_response.json()
         
-        # Find or create user
         user = User.query.filter_by(auth_provider='google', auth_id=userinfo['id']).first()
         if not user:
-            # Check if email already exists
             existing_user = User.query.filter_by(email=userinfo['email']).first()
             if existing_user:
                 flash('An account with this email already exists', 'error')
                 return redirect(url_for('login'))
             
-            # Create new user
             username = userinfo['email'].split('@')[0]
-            # Ensure username is unique
             base_username = username
             counter = 1
             while User.query.filter_by(username=username).first():
@@ -223,7 +218,6 @@ def auth_google_callback():
 
 @app.route('/auth/github')
 def auth_github():
-    """Initiate GitHub OAuth flow"""
     if not GITHUB_CLIENT_ID:
         flash('GitHub authentication is not configured', 'error')
         return redirect(url_for('login'))
@@ -238,14 +232,12 @@ def auth_github():
 
 @app.route('/auth/github/callback')
 def auth_github_callback():
-    """GitHub OAuth callback"""
     code = request.args.get('code')
     if not code:
         flash('Authentication failed', 'error')
         return redirect(url_for('login'))
     
     try:
-        # Exchange code for tokens
         token_url = "https://github.com/login/oauth/access_token"
         token_data = {
             'client_id': GITHUB_CLIENT_ID,
@@ -262,32 +254,26 @@ def auth_github_callback():
             flash('Authentication failed', 'error')
             return redirect(url_for('login'))
         
-        # Get user info
         userinfo_url = "https://api.github.com/user"
         headers = {'Authorization': f"token {token_json['access_token']}"}
         userinfo_response = requests.get(userinfo_url, headers=headers)
         userinfo = userinfo_response.json()
         
-        # Get user email
         emails_url = "https://api.github.com/user/emails"
         emails_response = requests.get(emails_url, headers=headers)
         emails = emails_response.json()
         
         primary_email = next((email['email'] for email in emails if email['primary']), None)
         
-        # Find or create user
         user = User.query.filter_by(auth_provider='github', auth_id=str(userinfo['id'])).first()
         if not user:
-            # Check if email already exists
             if primary_email:
                 existing_user = User.query.filter_by(email=primary_email).first()
                 if existing_user:
                     flash('An account with this email already exists', 'error')
                     return redirect(url_for('login'))
             
-            # Create new user
             username = userinfo['login']
-            # Ensure username is unique
             base_username = username
             counter = 1
             while User.query.filter_by(username=username).first():
@@ -311,6 +297,8 @@ def auth_github_callback():
         flash('Authentication failed', 'error')
         return redirect(url_for('login'))
 
+# --- MAIN ROUTES ---
+
 @app.route('/dashboard')
 @login_required
 def dashboard(): 
@@ -320,42 +308,76 @@ def dashboard():
 @login_required
 def create():
     if request.method == 'POST':
-        # Files
-        pic_data = None
-        if request.files.get('profile_pic'):
-            f = request.files['profile_pic']
-            if f.filename: pic_data = f"data:{f.mimetype};base64,{base64.b64encode(f.read()).decode('utf-8')}"
-        
-        res_data = None
-        if request.files.get('resume'):
-            f = request.files['resume']
-            if f.filename and f.mimetype=='application/pdf': res_data = f"data:application/pdf;base64,{base64.b64encode(f.read()).decode('utf-8')}"
+        try:
+            # Files
+            pic_data = None
+            if request.files.get('profile_pic'):
+                f = request.files['profile_pic']
+                if f.filename: 
+                    pic_data = f"data:{f.mimetype};base64,{base64.b64encode(f.read()).decode('utf-8')}"
+            
+            res_data = None
+            if request.files.get('resume'):
+                f = request.files['resume']
+                if f.filename and f.mimetype=='application/pdf': 
+                    res_data = f"data:application/pdf;base64,{base64.b64encode(f.read()).decode('utf-8')}"
 
-        # Custom Color Logic
-        custom_color = None
-        theme_preset = request.form['theme_preset']
-        if theme_preset == 'custom':
-            custom_color = request.form.get('custom_accent_color', '#0071e3')
-        
-        new_portfolio = Portfolio(
-            name=request.form['name'], role=request.form['role'], bio=request.form['bio'],
-            email=request.form['email'], github=request.form.get('github', ''), linkedin=request.form.get('linkedin', ''),
-            skills=request.form.get('skills', ''), theme_preset=theme_preset,
-            custom_accent_color=custom_color,
-            formspree_id=request.form.get('formspree_id', ''), live_url=request.form.get('live_url', ''),
-            profile_pic=pic_data, resume_data=res_data, user_id=current_user.id
-        )
-        db.session.add(new_portfolio); db.session.flush()
+            # Get theme preset
+            theme_preset = request.form.get('theme_preset', 'cupertino')
+            custom_color = None
+            if theme_preset == 'custom':
+                custom_color = request.form.get('custom_accent_color', '#0071e3')
+            
+            new_portfolio = Portfolio(
+                name=request.form.get('name', ''),
+                role=request.form.get('role', ''),
+                bio=request.form.get('bio', ''),
+                email=request.form.get('email', ''),
+                github=request.form.get('github', ''),
+                linkedin=request.form.get('linkedin', ''),
+                skills=request.form.get('skills', ''),
+                theme_preset=theme_preset,
+                custom_accent_color=custom_color,
+                formspree_id=request.form.get('formspree_id', ''),
+                live_url=request.form.get('live_url', ''),
+                profile_pic=pic_data,
+                resume_data=res_data,
+                user_id=current_user.id
+            )
+            db.session.add(new_portfolio)
+            db.session.flush()
 
-        # Loops for dynamic sections
-        for i, t in enumerate(request.form.getlist('project_title[]')):
-            if t.strip(): db.session.add(Project(title=t, desc=request.form.getlist('project_desc[]')[i], link=request.form.getlist('project_link[]')[i], tech=request.form.getlist('project_tech[]')[i], portfolio_id=new_portfolio.id))
-        
-        for i, c in enumerate(request.form.getlist('exp_company[]')):
-            if c.strip(): db.session.add(Experience(company=c, position=request.form.getlist('exp_position[]')[i], duration=request.form.getlist('exp_duration[]')[i], desc=request.form.getlist('exp_desc[]')[i], portfolio_id=new_portfolio.id))
+            # Projects
+            for i, t in enumerate(request.form.getlist('project_title[]')):
+                if t.strip():
+                    db.session.add(Project(
+                        title=t,
+                        desc=request.form.getlist('project_desc[]')[i],
+                        link=request.form.getlist('project_link[]')[i],
+                        tech=request.form.getlist('project_tech[]')[i],
+                        portfolio_id=new_portfolio.id
+                    ))
+            
+            # Experiences
+            for i, c in enumerate(request.form.getlist('exp_company[]')):
+                if c.strip():
+                    db.session.add(Experience(
+                        company=c,
+                        position=request.form.getlist('exp_position[]')[i],
+                        duration=request.form.getlist('exp_duration[]')[i],
+                        desc=request.form.getlist('exp_desc[]')[i],
+                        portfolio_id=new_portfolio.id
+                    ))
 
-        db.session.commit()
-        return redirect(url_for('preview', p_id=new_portfolio.id))
+            db.session.commit()
+            flash('Portfolio created successfully!', 'success')
+            return redirect(url_for('preview', p_id=new_portfolio.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error creating portfolio: {str(e)}")
+            flash(f'Error creating portfolio. Please try again.', 'error')
+            return redirect(url_for('create'))
     
     return render_template('generator.html')
 
@@ -367,69 +389,69 @@ def edit(p_id):
         return "Unauthorized", 403
     
     if request.method == 'POST':
-        # Debug: Print form data to see what's being submitted
-        print("Form data:", dict(request.form))
-        
-        # Update basic info - using .get() for all optional fields
-        p.name = request.form['name']
-        p.role = request.form['role']
-        p.bio = request.form['bio']
-        p.email = request.form['email']
-        p.github = request.form.get('github', '')
-        p.linkedin = request.form.get('linkedin', '')
-        p.skills = request.form.get('skills', '')
-        p.formspree_id = request.form.get('formspree_id', '')
-        p.live_url = request.form.get('live_url', '')
-        
-        # Update theme - this is the key fix
-        theme_preset = request.form.get('theme_preset', 'cupertino')
-        print(f"Theme selected: {theme_preset}")  # Debug
-        p.theme_preset = theme_preset
-        
-        # Update files if provided
-        if request.files.get('profile_pic'):
-            f = request.files['profile_pic']
-            if f.filename:
-                p.profile_pic = f"data:{f.mimetype};base64,{base64.b64encode(f.read()).decode('utf-8')}"
-        
-        if request.files.get('resume'):
-            f = request.files['resume']
-            if f.filename and f.mimetype == 'application/pdf':
-                p.resume_data = f"data:application/pdf;base64,{base64.b64encode(f.read()).decode('utf-8')}"
-        
-        # Delete existing projects and experiences
-        Project.query.filter_by(portfolio_id=p.id).delete()
-        Experience.query.filter_by(portfolio_id=p.id).delete()
-        
-        # Add updated projects
-        titles = request.form.getlist('project_title[]')
-        for i, title in enumerate(titles):
-            if title.strip():
-                proj = Project(
-                    title=title,
-                    desc=request.form.getlist('project_desc[]')[i],
-                    link=request.form.getlist('project_link[]')[i],
-                    tech=request.form.getlist('project_tech[]')[i],
-                    portfolio_id=p.id
-                )
-                db.session.add(proj)
-        
-        # Add updated experiences
-        companies = request.form.getlist('exp_company[]')
-        for i, company in enumerate(companies):
-            if company.strip():
-                exp = Experience(
-                    company=company,
-                    position=request.form.getlist('exp_position[]')[i],
-                    duration=request.form.getlist('exp_duration[]')[i],
-                    desc=request.form.getlist('exp_desc[]')[i],
-                    portfolio_id=p.id
-                )
-                db.session.add(exp)
-        
-        db.session.commit()
-        flash('Portfolio updated successfully!', 'success')
-        return redirect(url_for('preview', p_id=p.id))
+        try:
+            # Update basic info
+            p.name = request.form['name']
+            p.role = request.form['role']
+            p.bio = request.form['bio']
+            p.email = request.form['email']
+            p.github = request.form.get('github', '')
+            p.linkedin = request.form.get('linkedin', '')
+            p.skills = request.form.get('skills', '')
+            p.formspree_id = request.form.get('formspree_id', '')
+            p.live_url = request.form.get('live_url', '')
+            
+            # Update theme
+            p.theme_preset = request.form.get('theme_preset', 'cupertino')
+            
+            # Update files if provided
+            if request.files.get('profile_pic'):
+                f = request.files['profile_pic']
+                if f.filename:
+                    p.profile_pic = f"data:{f.mimetype};base64,{base64.b64encode(f.read()).decode('utf-8')}"
+            
+            if request.files.get('resume'):
+                f = request.files['resume']
+                if f.filename and f.mimetype == 'application/pdf':
+                    p.resume_data = f"data:application/pdf;base64,{base64.b64encode(f.read()).decode('utf-8')}"
+            
+            # Delete existing projects and experiences
+            Project.query.filter_by(portfolio_id=p.id).delete()
+            Experience.query.filter_by(portfolio_id=p.id).delete()
+            
+            # Add updated projects
+            titles = request.form.getlist('project_title[]')
+            for i, title in enumerate(titles):
+                if title.strip():
+                    proj = Project(
+                        title=title,
+                        desc=request.form.getlist('project_desc[]')[i],
+                        link=request.form.getlist('project_link[]')[i],
+                        tech=request.form.getlist('project_tech[]')[i],
+                        portfolio_id=p.id
+                    )
+                    db.session.add(proj)
+            
+            # Add updated experiences
+            companies = request.form.getlist('exp_company[]')
+            for i, company in enumerate(companies):
+                if company.strip():
+                    exp = Experience(
+                        company=company,
+                        position=request.form.getlist('exp_position[]')[i],
+                        duration=request.form.getlist('exp_duration[]')[i],
+                        desc=request.form.getlist('exp_desc[]')[i],
+                        portfolio_id=p.id
+                    )
+                    db.session.add(exp)
+            
+            db.session.commit()
+            flash('Portfolio updated successfully!', 'success')
+            return redirect(url_for('preview', p_id=p.id))
+        except Exception as e:
+            db.session.rollback()
+            flash('Error updating portfolio', 'error')
+            return redirect(url_for('edit', p_id=p.id))
     
     return render_template('edit.html', p=p)
 
@@ -437,8 +459,11 @@ def edit(p_id):
 @login_required
 def delete(p_id):
     p = Portfolio.query.get_or_404(p_id)
-    if p.author != current_user: return "Unauthorized", 403
-    db.session.delete(p); db.session.commit()
+    if p.author != current_user:
+        return "Unauthorized", 403
+    db.session.delete(p)
+    db.session.commit()
+    flash('Portfolio deleted successfully', 'success')
     return redirect(url_for('dashboard'))
 
 @app.route('/qr/<int:p_id>')
@@ -471,7 +496,6 @@ def download(p_id):
 @app.route('/sample')
 def sample():
     """Sample portfolio for landing page preview"""
-    # Create a dummy portfolio object for the sample
     class SamplePortfolio:
         def __init__(self):
             self.id = 1
