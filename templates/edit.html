@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Portfolio - DevFolio</title>
    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+   <script src="https://unpkg.com/lucide@0.263.0"></script>
 
     <style>
         :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; }
@@ -342,7 +343,7 @@
             <span class="label">Choose Your Vibe</span>
             <div class="theme-grid">
                 <label class="theme-opt">
-                    <input type="radio" name="theme_preset" value="cupertino" {% if p.theme_preset == 'cupertino' %}checked{% endif %}>
+                    <input type="radio" name="theme_preset" value="cupertino" checked>
                     <div class="theme-card">
                         <i data-lucide="layout-template" class="theme-icon" style="color: #0071e3;"></i>
                         <h4>Cupertino</h4>
@@ -351,7 +352,7 @@
                 </label>
                 
                 <label class="theme-opt">
-                    <input type="radio" name="theme_preset" value="cyberpunk" {% if p.theme_preset == 'cyberpunk' %}checked{% endif %}>
+                    <input type="radio" name="theme_preset" value="cyberpunk">
                     <div class="theme-card">
                         <i data-lucide="cpu" class="theme-icon" style="color: #00aa2c;"></i>
                         <h4>Cyberpunk</h4>
@@ -360,7 +361,7 @@
                 </label>
                 
                 <label class="theme-opt">
-                    <input type="radio" name="theme_preset" value="midnight" {% if p.theme_preset == 'midnight' %}checked{% endif %}>
+                    <input type="radio" name="theme_preset" value="midnight">
                     <div class="theme-card">
                         <i data-lucide="moon" class="theme-icon" style="color: #38bdf8;"></i>
                         <h4>Midnight</h4>
@@ -369,7 +370,7 @@
                 </label>
                 
                 <label class="theme-opt">
-                    <input type="radio" name="theme_preset" value="sunset" {% if p.theme_preset == 'sunset' %}checked{% endif %}>
+                    <input type="radio" name="theme_preset" value="sunset">
                     <div class="theme-card">
                         <i data-lucide="sunset" class="theme-icon" style="color: #ff4500;"></i>
                         <h4>Sunset</h4>
@@ -378,7 +379,7 @@
                 </label>
                 
                 <label class="theme-opt">
-                    <input type="radio" name="theme_preset" value="professional" {% if p.theme_preset == 'professional' %}checked{% endif %}>
+                    <input type="radio" name="theme_preset" value="professional">
                     <div class="theme-card">
                         <i data-lucide="briefcase" class="theme-icon" style="color: #4b5563;"></i>
                         <h4>Professional</h4>
@@ -387,7 +388,7 @@
                 </label>
                 
                 <label class="theme-opt">
-                    <input type="radio" name="theme_preset" value="cartoon" {% if p.theme_preset == 'cartoon' %}checked{% endif %}>
+                    <input type="radio" name="theme_preset" value="cartoon">
                     <div class="theme-card">
                         <i data-lucide="gamepad-2" class="theme-icon" style="color: #ff6b6b;"></i>
                         <h4>Cartoon</h4>
@@ -396,7 +397,7 @@
                 </label>
                 
                 <label class="theme-opt">
-                    <input type="radio" name="theme_preset" value="elegant" {% if p.theme_preset == 'elegant' %}checked{% endif %}>
+                    <input type="radio" name="theme_preset" value="elegant">
                     <div class="theme-card">
                         <i data-lucide="feather" class="theme-icon" style="color: #d4af37;"></i>
                         <h4>Elegant</h4>
@@ -405,7 +406,7 @@
                 </label>
                 
                 <label class="theme-opt">
-                    <input type="radio" name="theme_preset" value="nature" {% if p.theme_preset == 'nature' %}checked{% endif %}>
+                    <input type="radio" name="theme_preset" value="nature">
                     <div class="theme-card">
                         <i data-lucide="leaf" class="theme-icon" style="color: #228b22;"></i>
                         <h4>Nature</h4>
@@ -414,6 +415,7 @@
                 </label>
             </div>
         </div>
+
 
         <!-- === IDENTITY === -->
         <div class="card">

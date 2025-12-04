@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash, session
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from pymongo import MongoClient
+from bson.objectid import ObjectId
 import io
 import base64
 import qrcode
@@ -9,34 +10,29 @@ import os
 import requests
 import traceback
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
 # --- APP SETUP ---
 app = Flask(__name__)
-
-database_uri = os.environ.get('DATABASE_URL')
-if database_uri and database_uri.startswith("postgres://"):
-    database_uri = database_uri.replace("postgres://", "postgresql://", 1)
-
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'b42907f1d8325fda2d3fcd6917c2f910437602425099d321c9dab187b04d89a5y')
-
-# Fixed database configuration
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = database_uri or f'sqlite:///{os.path.join(basedir, "instance", "portfolios.db")}'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-# --- CRITICAL FIX FOR SUPABASE POOLER ---
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_recycle': 300,
-    'pool_pre_ping': True,
-    'pool_size': 10,
-    'max_overflow': 20,
-    'connect_args': {'options': '-c search_path=public'} # <--- THIS IS THE MAGIC LINE YOU WERE MISSING
-}
+# --- MONGODB SETUP ---
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/')
+client = MongoClient(MONGODB_URI)
+db = client['devfolio']  # Database name
 
-db = SQLAlchemy(app)
+# Collections
+users_collection = db['users']
+portfolios_collection = db['portfolios']
+
+# Create indexes for better performance
+users_collection.create_index('username', unique=True)
+users_collection.create_index('email', unique=True, sparse=True)
+portfolios_collection.create_index('user_id')
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -47,71 +43,29 @@ GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
 GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
 GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
 
-# --- MODELS ---
-
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    email = db.Column(db.String(100), unique=True, nullable=True)
-    password = db.Column(db.String(200), nullable=True)
-    auth_provider = db.Column(db.String(20), default='local')
-    auth_id = db.Column(db.String(100), nullable=True)
-    portfolios = db.relationship('Portfolio', backref='author', lazy=True)
-
-class Portfolio(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    role = db.Column(db.String(100), nullable=False)
-    bio = db.Column(db.Text, nullable=False)
-    email = db.Column(db.String(100))
-    github = db.Column(db.String(100))
-    linkedin = db.Column(db.String(100))
-    skills = db.Column(db.String(200))
-    
-    theme_preset = db.Column(db.String(50), default="cupertino")
-    custom_accent_color = db.Column(db.String(7), nullable=True)
-    
-    profile_pic = db.Column(db.Text, nullable=True)
-    resume_data = db.Column(db.Text, nullable=True)
-    
-    formspree_id = db.Column(db.String(50), nullable=True)
-    live_url = db.Column(db.String(200), nullable=True)
-    
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    projects = db.relationship('Project', backref='portfolio', lazy=True, cascade="all, delete-orphan")
-    experiences = db.relationship('Experience', backref='portfolio', lazy=True, cascade="all, delete-orphan")
-
-class Project(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100), nullable=False)
-    desc = db.Column(db.Text, nullable=False)
-    link = db.Column(db.String(200))
-    tech = db.Column(db.String(100))
-    portfolio_id = db.Column(db.Integer, db.ForeignKey('portfolio.id'), nullable=False)
-
-class Experience(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    company = db.Column(db.String(100), nullable=False)
-    position = db.Column(db.String(100), nullable=False)
-    duration = db.Column(db.String(50), nullable=False)
-    desc = db.Column(db.Text, nullable=True)
-    portfolio_id = db.Column(db.Integer, db.ForeignKey('portfolio.id'), nullable=False)
-
-# --- DATABASE INITIALIZATION ---
-with app.app_context():
-    instance_dir = os.path.join(basedir, 'instance')
-    # db.create_all() # Keeping this commented out as you are using Supabase
+# --- USER CLASS FOR FLASK-LOGIN ---
+class User(UserMixin):
+    def __init__(self, user_data):
+        self.id = str(user_data['_id'])
+        self.username = user_data['username']
+        self.email = user_data.get('email')
+        self.password = user_data.get('password')
+        self.auth_provider = user_data.get('auth_provider', 'local')
+        self.auth_id = user_data.get('auth_id')
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    user_data = users_collection.find_one({'_id': ObjectId(user_id)})
+    if user_data:
+        return User(user_data)
+    return None
 
 # Health check endpoint
 @app.route('/health')
 def health_check():
     try:
-        db.session.execute('SELECT 1')
+        # Ping MongoDB
+        client.admin.command('ping')
         return 'OK', 200
     except Exception as e:
         return f'Database error: {str(e)}', 500
@@ -139,28 +93,46 @@ def register():
         try:
             username = request.form['username']
             password = request.form['password']
-            if User.query.filter_by(username=username).first():
+            
+            # Check if username exists
+            if users_collection.find_one({'username': username}):
                 flash('Username taken')
                 return redirect(url_for('register'))
-            new_user = User(username=username, password=generate_password_hash(password, method='pbkdf2:sha256'))
-            db.session.add(new_user)
-            db.session.commit()
-            login_user(new_user)
+            
+            # Create new user
+            user_data = {
+                'username': username,
+                'password': generate_password_hash(password, method='pbkdf2:sha256'),
+                'auth_provider': 'local',
+                'created_at': datetime.utcnow()
+            }
+            
+            result = users_collection.insert_one(user_data)
+            user_data['_id'] = result.inserted_id
+            
+            login_user(User(user_data))
             return redirect(url_for('dashboard'))
+            
         except Exception as e:
-            db.session.rollback()
             flash(f'Registration error: {str(e)}')
             return redirect(url_for('register'))
+    
     return render_template('auth.html', mode='register')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        user = User.query.filter_by(username=request.form['username']).first()
-        if user and user.auth_provider == 'local' and check_password_hash(user.password, request.form['password']):
-            login_user(user)
+        username = request.form['username']
+        password = request.form['password']
+        
+        user_data = users_collection.find_one({'username': username})
+        
+        if user_data and user_data.get('auth_provider') == 'local' and check_password_hash(user_data.get('password', ''), password):
+            login_user(User(user_data))
             return redirect(url_for('dashboard'))
+        
         flash('Invalid credentials')
+    
     return render_template('auth.html', mode='login')
 
 @app.route('/logout')
@@ -215,31 +187,37 @@ def auth_google_callback():
         userinfo_response = requests.get(userinfo_url, headers=headers)
         userinfo = userinfo_response.json()
         
-        user = User.query.filter_by(auth_provider='google', auth_id=userinfo['id']).first()
-        if not user:
-            existing_user = User.query.filter_by(email=userinfo['email']).first()
+        user_data = users_collection.find_one({'auth_provider': 'google', 'auth_id': userinfo['id']})
+        
+        if not user_data:
+            # Check if email exists
+            existing_user = users_collection.find_one({'email': userinfo['email']})
             if existing_user:
                 flash('An account with this email already exists', 'error')
                 return redirect(url_for('login'))
             
+            # Generate unique username
             username = userinfo['email'].split('@')[0]
             base_username = username
             counter = 1
-            while User.query.filter_by(username=username).first():
+            while users_collection.find_one({'username': username}):
                 username = f"{base_username}{counter}"
                 counter += 1
             
-            user = User(
-                username=username,
-                email=userinfo['email'],
-                auth_provider='google',
-                auth_id=userinfo['id']
-            )
-            db.session.add(user)
-            db.session.commit()
+            # Create new user
+            new_user_data = {
+                'username': username,
+                'email': userinfo['email'],
+                'auth_provider': 'google',
+                'auth_id': userinfo['id'],
+                'created_at': datetime.utcnow()
+            }
+            result = users_collection.insert_one(new_user_data)
+            new_user_data['_id'] = result.inserted_id
+            user_data = new_user_data
         
-        login_user(user)
-        flash(f'Welcome back, {user.username}!', 'success')
+        login_user(User(user_data))
+        flash(f'Welcome back, {user_data["username"]}!', 'success')
         return redirect(url_for('dashboard'))
         
     except Exception as e:
@@ -295,32 +273,37 @@ def auth_github_callback():
         
         primary_email = next((email['email'] for email in emails if email['primary']), None)
         
-        user = User.query.filter_by(auth_provider='github', auth_id=str(userinfo['id'])).first()
-        if not user:
+        user_data = users_collection.find_one({'auth_provider': 'github', 'auth_id': str(userinfo['id'])})
+        
+        if not user_data:
             if primary_email:
-                existing_user = User.query.filter_by(email=primary_email).first()
+                existing_user = users_collection.find_one({'email': primary_email})
                 if existing_user:
                     flash('An account with this email already exists', 'error')
                     return redirect(url_for('login'))
             
+            # Generate unique username
             username = userinfo['login']
             base_username = username
             counter = 1
-            while User.query.filter_by(username=username).first():
+            while users_collection.find_one({'username': username}):
                 username = f"{base_username}{counter}"
                 counter += 1
             
-            user = User(
-                username=username,
-                email=primary_email,
-                auth_provider='github',
-                auth_id=str(userinfo['id'])
-            )
-            db.session.add(user)
-            db.session.commit()
+            # Create new user
+            new_user_data = {
+                'username': username,
+                'email': primary_email,
+                'auth_provider': 'github',
+                'auth_id': str(userinfo['id']),
+                'created_at': datetime.utcnow()
+            }
+            result = users_collection.insert_one(new_user_data)
+            new_user_data['_id'] = result.inserted_id
+            user_data = new_user_data
         
-        login_user(user)
-        flash(f'Welcome back, {user.username}!', 'success')
+        login_user(User(user_data))
+        flash(f'Welcome back, {user_data["username"]}!', 'success')
         return redirect(url_for('dashboard'))
         
     except Exception as e:
@@ -332,7 +315,14 @@ def auth_github_callback():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template('dashboard.html', portfolios=current_user.portfolios)
+    # Get all portfolios for current user
+    portfolios = list(portfolios_collection.find({'user_id': current_user.id}))
+    
+    # Convert ObjectId to string for template
+    for p in portfolios:
+        p['id'] = str(p['_id'])
+    
+    return render_template('dashboard.html', portfolios=portfolios)
 
 @app.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -346,7 +336,7 @@ def create():
                     flash(f'{field.capitalize()} is required', 'error')
                     return redirect(url_for('create'))
             
-            # Files
+            # Process files
             pic_data = None
             profile_pic_file = request.files.get('profile_pic')
             if profile_pic_file and profile_pic_file.filename:
@@ -374,28 +364,8 @@ def create():
             if theme_preset == 'custom':
                 custom_color = request.form.get('custom_accent_color', '#0071e3')
             
-            # Create portfolio
-            new_portfolio = Portfolio(
-                name=request.form.get('name', '').strip(),
-                role=request.form.get('role', '').strip(),
-                bio=request.form.get('bio', '').strip(),
-                email=request.form.get('email', '').strip(),
-                github=request.form.get('github', '').strip(),
-                linkedin=request.form.get('linkedin', '').strip(),
-                skills=request.form.get('skills', '').strip(),
-                theme_preset=theme_preset,
-                custom_accent_color=custom_color,
-                formspree_id=request.form.get('formspree_id', '').strip(),
-                live_url=request.form.get('live_url', '').strip(),
-                profile_pic=pic_data,
-                resume_data=res_data,
-                user_id=current_user.id
-            )
-            
-            db.session.add(new_portfolio)
-            db.session.flush()
-
-            # --- SAFER LOOP FOR PROJECTS ---
+            # Process projects
+            projects = []
             titles = request.form.getlist('project_title[]')
             descriptions = request.form.getlist('project_desc[]')
             links = request.form.getlist('project_link[]')
@@ -403,39 +373,56 @@ def create():
             
             for i in range(len(titles)):
                 if titles[i].strip():
-                    project = Project(
-                        title=titles[i].strip(),
-                        desc=descriptions[i] if i < len(descriptions) else '',
-                        link=links[i] if i < len(links) else '',
-                        tech=techs[i] if i < len(techs) else '',
-                        portfolio_id=new_portfolio.id
-                    )
-                    db.session.add(project)
+                    projects.append({
+                        'title': titles[i].strip(),
+                        'desc': descriptions[i] if i < len(descriptions) else '',
+                        'link': links[i] if i < len(links) else '',
+                        'tech': techs[i] if i < len(techs) else ''
+                    })
 
-            # --- SAFER LOOP FOR EXPERIENCES ---
+            # Process experiences
+            experiences = []
             companies = request.form.getlist('exp_company[]')
             positions = request.form.getlist('exp_position[]')
             durations = request.form.getlist('exp_duration[]')
-            descriptions = request.form.getlist('exp_desc[]')
+            exp_descriptions = request.form.getlist('exp_desc[]')
             
             for i in range(len(companies)):
                 if companies[i].strip():
-                    experience = Experience(
-                        company=companies[i].strip(),
-                        position=positions[i] if i < len(positions) else '',
-                        duration=durations[i] if i < len(durations) else '',
-                        desc=descriptions[i] if i < len(descriptions) else '',
-                        portfolio_id=new_portfolio.id
-                    )
-                    db.session.add(experience)
-
-            # Final commit
-            db.session.commit()
+                    experiences.append({
+                        'company': companies[i].strip(),
+                        'position': positions[i] if i < len(positions) else '',
+                        'duration': durations[i] if i < len(durations) else '',
+                        'desc': exp_descriptions[i] if i < len(exp_descriptions) else ''
+                    })
+            
+            # Create portfolio document
+            portfolio_data = {
+                'name': request.form.get('name', '').strip(),
+                'role': request.form.get('role', '').strip(),
+                'bio': request.form.get('bio', '').strip(),
+                'email': request.form.get('email', '').strip(),
+                'github': request.form.get('github', '').strip(),
+                'linkedin': request.form.get('linkedin', '').strip(),
+                'skills': request.form.get('skills', '').strip(),
+                'theme_preset': theme_preset,
+                'custom_accent_color': custom_color,
+                'formspree_id': request.form.get('formspree_id', '').strip(),
+                'live_url': request.form.get('live_url', '').strip(),
+                'profile_pic': pic_data,
+                'resume_data': res_data,
+                'user_id': current_user.id,
+                'projects': projects,
+                'experiences': experiences,
+                'created_at': datetime.utcnow()
+            }
+            
+            result = portfolios_collection.insert_one(portfolio_data)
+            
             flash('Portfolio created successfully!', 'success')
-            return redirect(url_for('preview', p_id=new_portfolio.id))
+            return redirect(url_for('preview', p_id=str(result.inserted_id)))
             
         except Exception as e:
-            db.session.rollback()
             print(f"Error creating portfolio: {str(e)}")
             print(traceback.format_exc())
             flash(f'Error creating portfolio: {str(e)}', 'error')
@@ -443,45 +430,50 @@ def create():
     
     return render_template('generator.html')
 
-@app.route('/edit/<int:p_id>', methods=['GET', 'POST'])
+@app.route('/edit/<p_id>', methods=['GET', 'POST'])
 @login_required
 def edit(p_id):
-    p = Portfolio.query.get_or_404(p_id)
-    if p.author != current_user:
+    try:
+        portfolio = portfolios_collection.find_one({'_id': ObjectId(p_id)})
+    except:
+        return "Invalid portfolio ID", 404
+    
+    if not portfolio:
+        return "Portfolio not found", 404
+    
+    if portfolio['user_id'] != current_user.id:
         return "Unauthorized", 403
     
     if request.method == 'POST':
         try:
             # Update basic info
-            p.name = request.form['name']
-            p.role = request.form['role']
-            p.bio = request.form['bio']
-            p.email = request.form['email']
-            p.github = request.form.get('github', '')
-            p.linkedin = request.form.get('linkedin', '')
-            p.skills = request.form.get('skills', '')
-            p.formspree_id = request.form.get('formspree_id', '')
-            p.live_url = request.form.get('live_url', '')
-            
-            # Update theme
-            p.theme_preset = request.form.get('theme_preset', 'cupertino')
+            update_data = {
+                'name': request.form['name'],
+                'role': request.form['role'],
+                'bio': request.form['bio'],
+                'email': request.form['email'],
+                'github': request.form.get('github', ''),
+                'linkedin': request.form.get('linkedin', ''),
+                'skills': request.form.get('skills', ''),
+                'formspree_id': request.form.get('formspree_id', ''),
+                'live_url': request.form.get('live_url', ''),
+                'theme_preset': request.form.get('theme_preset', 'cupertino'),
+                'updated_at': datetime.utcnow()
+            }
             
             # Update files if provided
             if request.files.get('profile_pic'):
                 f = request.files['profile_pic']
                 if f.filename:
-                    p.profile_pic = f"data:{f.mimetype};base64,{base64.b64encode(f.read()).decode('utf-8')}"
+                    update_data['profile_pic'] = f"data:{f.mimetype};base64,{base64.b64encode(f.read()).decode('utf-8')}"
             
             if request.files.get('resume'):
                 f = request.files['resume']
                 if f.filename and f.mimetype == 'application/pdf':
-                    p.resume_data = f"data:application/pdf;base64,{base64.b64encode(f.read()).decode('utf-8')}"
+                    update_data['resume_data'] = f"data:application/pdf;base64,{base64.b64encode(f.read()).decode('utf-8')}"
             
-            # Delete existing projects and experiences
-            Project.query.filter_by(portfolio_id=p.id).delete()
-            Experience.query.filter_by(portfolio_id=p.id).delete()
-            
-            # --- SAFER LOOP FOR UPDATING PROJECTS ---
+            # Process projects
+            projects = []
             titles = request.form.getlist('project_title[]')
             descriptions = request.form.getlist('project_desc[]')
             links = request.form.getlist('project_link[]')
@@ -489,16 +481,17 @@ def edit(p_id):
             
             for i, title in enumerate(titles):
                 if title.strip():
-                    proj = Project(
-                        title=title,
-                        desc=descriptions[i] if i < len(descriptions) else '',
-                        link=links[i] if i < len(links) else '',
-                        tech=techs[i] if i < len(techs) else '',
-                        portfolio_id=p.id
-                    )
-                    db.session.add(proj)
+                    projects.append({
+                        'title': title,
+                        'desc': descriptions[i] if i < len(descriptions) else '',
+                        'link': links[i] if i < len(links) else '',
+                        'tech': techs[i] if i < len(techs) else ''
+                    })
             
-            # --- SAFER LOOP FOR UPDATING EXPERIENCES ---
+            update_data['projects'] = projects
+            
+            # Process experiences
+            experiences = []
             companies = request.form.getlist('exp_company[]')
             positions = request.form.getlist('exp_position[]')
             durations = request.form.getlist('exp_duration[]')
@@ -506,41 +499,61 @@ def edit(p_id):
 
             for i, company in enumerate(companies):
                 if company.strip():
-                    exp = Experience(
-                        company=company,
-                        position=positions[i] if i < len(positions) else '',
-                        duration=durations[i] if i < len(durations) else '',
-                        desc=descs[i] if i < len(descs) else '',
-                        portfolio_id=p.id
-                    )
-                    db.session.add(exp)
+                    experiences.append({
+                        'company': company,
+                        'position': positions[i] if i < len(positions) else '',
+                        'duration': durations[i] if i < len(durations) else '',
+                        'desc': descs[i] if i < len(descs) else ''
+                    })
             
-            db.session.commit()
+            update_data['experiences'] = experiences
+            
+            portfolios_collection.update_one(
+                {'_id': ObjectId(p_id)},
+                {'$set': update_data}
+            )
+            
             flash('Portfolio updated successfully!', 'success')
-            return redirect(url_for('preview', p_id=p.id))
+            return redirect(url_for('preview', p_id=p_id))
+            
         except Exception as e:
-            db.session.rollback()
             print(f"Error updating portfolio: {str(e)}")
             flash('Error updating portfolio', 'error')
-            return redirect(url_for('edit', p_id=p.id))
+            return redirect(url_for('edit', p_id=p_id))
     
-    return render_template('edit.html', p=p)
+    # Convert for template
+    portfolio['id'] = str(portfolio['_id'])
+    return render_template('edit.html', p=portfolio)
 
-@app.route('/delete/<int:p_id>')
+@app.route('/delete/<p_id>')
 @login_required
 def delete(p_id):
-    p = Portfolio.query.get_or_404(p_id)
-    if p.author != current_user:
+    try:
+        portfolio = portfolios_collection.find_one({'_id': ObjectId(p_id)})
+    except:
+        return "Invalid portfolio ID", 404
+    
+    if not portfolio:
+        return "Portfolio not found", 404
+    
+    if portfolio['user_id'] != current_user.id:
         return "Unauthorized", 403
-    db.session.delete(p)
-    db.session.commit()
+    
+    portfolios_collection.delete_one({'_id': ObjectId(p_id)})
     flash('Portfolio deleted successfully', 'success')
     return redirect(url_for('dashboard'))
 
-@app.route('/qr/<int:p_id>')
+@app.route('/qr/<p_id>')
 def qr_code(p_id):
-    p = Portfolio.query.get_or_404(p_id)
-    data = p.live_url if p.live_url else (p.linkedin if p.linkedin else "https://github.com")
+    try:
+        portfolio = portfolios_collection.find_one({'_id': ObjectId(p_id)})
+    except:
+        return "Invalid portfolio ID", 404
+    
+    if not portfolio:
+        return "Portfolio not found", 404
+    
+    data = portfolio.get('live_url') or portfolio.get('linkedin') or "https://github.com"
     
     img = qrcode.make(data)
     mem = io.BytesIO()
@@ -548,21 +561,37 @@ def qr_code(p_id):
     mem.seek(0)
     return send_file(mem, mimetype='image/png')
 
-@app.route('/preview/<int:p_id>')
+@app.route('/preview/<p_id>')
 def preview(p_id):
-    p = Portfolio.query.get_or_404(p_id)
-    skills = [s.strip() for s in p.skills.split(',')] if p.skills else []
-    return render_template('portfolio.html', p=p, skills=skills, preview=True)
+    try:
+        portfolio = portfolios_collection.find_one({'_id': ObjectId(p_id)})
+    except:
+        return "Invalid portfolio ID", 404
+    
+    if not portfolio:
+        return "Portfolio not found", 404
+    
+    portfolio['id'] = str(portfolio['_id'])
+    skills = [s.strip() for s in portfolio.get('skills', '').split(',')] if portfolio.get('skills') else []
+    return render_template('portfolio.html', p=portfolio, skills=skills, preview=True)
 
-@app.route('/download/<int:p_id>')
+@app.route('/download/<p_id>')
 def download(p_id):
-    p = Portfolio.query.get_or_404(p_id)
-    skills = [s.strip() for s in p.skills.split(',')] if p.skills else []
-    rendered = render_template('portfolio.html', p=p, skills=skills, preview=False)
+    try:
+        portfolio = portfolios_collection.find_one({'_id': ObjectId(p_id)})
+    except:
+        return "Invalid portfolio ID", 404
+    
+    if not portfolio:
+        return "Portfolio not found", 404
+    
+    portfolio['id'] = str(portfolio['_id'])
+    skills = [s.strip() for s in portfolio.get('skills', '').split(',')] if portfolio.get('skills') else []
+    rendered = render_template('portfolio.html', p=portfolio, skills=skills, preview=False)
     mem = io.BytesIO()
     mem.write(rendered.encode('utf-8'))
     mem.seek(0)
-    return send_file(mem, as_attachment=True, download_name=f"{p.name.replace(' ','_')}_portfolio.html", mimetype='text/html')
+    return send_file(mem, as_attachment=True, download_name=f"{portfolio['name'].replace(' ','_')}_portfolio.html", mimetype='text/html')
 
 @app.route('/sample')
 def sample():
