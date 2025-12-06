@@ -8,238 +8,115 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        /* --- ANIMATIONS --- */
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
         }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
             background: #f5f5f7;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            color: #1d1d1f;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; padding: 20px; color: #1d1d1f;
         }
 
         .card {
-            background: white;
-            padding: 48px 40px;
-            border-radius: 20px;
-            width: 100%;
-            max-width: 420px;
+            background: white; padding: 48px 40px; border-radius: 20px;
+            width: 100%; max-width: 420px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.08);
             border: 1px solid #e5e5e7;
+            animation: scaleIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
         .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 32px;
-            font-size: 24px;
-            font-weight: 700;
-            color: #1d1d1f;
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            margin-bottom: 32px; font-size: 24px; font-weight: 700; color: #1d1d1f;
         }
 
         .logo-icon { width: 32px; height: 32px; color: #0071e3; }
 
-        h1 {
-            font-size: 28px;
-            margin-bottom: 8px;
-            font-weight: 700;
-            text-align: center;
-        }
+        h1 { font-size: 28px; margin-bottom: 8px; font-weight: 700; text-align: center; }
 
-        .subtitle {
-            color: #86868b;
-            font-size: 17px;
-            margin-bottom: 32px;
-            text-align: center;
-        }
+        .subtitle { color: #86868b; font-size: 17px; margin-bottom: 32px; text-align: center; }
 
-        .auth-form {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            margin-bottom: 24px;
-        }
+        .auth-form { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
 
         input {
-            width: 100%;
-            padding: 16px;
-            border: 1px solid #d2d2d7;
-            border-radius: 12px;
-            font-size: 17px;
-            background: #fbfbfd;
-            transition: all 0.2s ease;
-            font-family: inherit;
+            width: 100%; padding: 16px; border: 1px solid #d2d2d7; border-radius: 12px;
+            font-size: 17px; background: #fbfbfd; transition: all 0.3s ease; font-family: inherit;
         }
 
         input:focus {
-            border-color: #0071e3;
-            background: white;
-            box-shadow: 0 0 0 4px rgba(0,113,227,0.1);
-            outline: none;
+            border-color: #0071e3; background: white;
+            box-shadow: 0 0 0 4px rgba(0,113,227,0.1); outline: none; transform: translateY(-1px);
         }
 
         .primary-btn {
-            width: 100%;
-            padding: 16px;
-            background: #0071e3;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 17px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-top: 8px;
-            position: relative; /* Needed for loader positioning */
+            width: 100%; padding: 16px; background: #0071e3; color: white;
+            border: none; border-radius: 12px; font-size: 17px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s ease; margin-top: 8px;
+            position: relative; overflow: hidden;
         }
 
-        .primary-btn:hover {
-            background: #0077ed;
-            transform: scale(1.02);
-        }
+        .primary-btn:hover { background: #0077ed; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,113,227,0.3); }
+        .primary-btn:active { transform: translateY(0); }
 
-        .divider {
-            display: flex;
-            align-items: center;
-            margin: 32px 0;
-            color: #86868b;
-            font-size: 15px;
-        }
-
-        .divider::before,
-        .divider::after {
-            content: "";
-            flex: 1;
-            height: 1px;
-            background: #e5e5e7;
-        }
-
+        .divider { display: flex; align-items: center; margin: 32px 0; color: #86868b; font-size: 15px; }
+        .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #e5e5e7; }
         .divider span { padding: 0 16px; }
 
-        .social-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 32px;
-        }
+        .social-buttons { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
 
         .social-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            padding: 14px;
-            border: 1.5px solid #d2d2d7;
-            border-radius: 12px;
-            background: white;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative; /* Needed for loader positioning */
-            color: #1d1d1f;
-            text-decoration: none;
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            padding: 14px; border: 1.5px solid #d2d2d7; border-radius: 12px;
+            background: white; font-size: 16px; font-weight: 500; cursor: pointer;
+            transition: all 0.2s ease; position: relative; color: #1d1d1f; text-decoration: none;
         }
 
-        .social-btn:hover {
-            border-color: #0071e3;
-            background: #fbfbfd;
-        }
+        .social-btn:hover { border-color: #0071e3; background: #fbfbfd; transform: translateY(-1px); }
 
         .flash {
-            background: #ff3b30;
-            color: white;
-            padding: 12px 16px;
-            border-radius: 12px;
-            font-size: 15px;
-            margin-bottom: 20px;
-            text-align: center;
+            background: #ff3b30; color: white; padding: 12px 16px; border-radius: 12px;
+            font-size: 15px; margin-bottom: 20px; text-align: center;
+            animation: shake 0.5s ease-in-out;
         }
 
-        .switch-auth {
-            text-align: center;
-            font-size: 15px;
-            color: #86868b;
-        }
-
-        .switch-auth a {
-            color: #0071e3;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .switch-auth a:hover { text-decoration: underline; }
+        .switch-auth { text-align: center; font-size: 15px; color: #86868b; }
+        .switch-auth a { color: #0071e3; text-decoration: none; font-weight: 600; transition: color 0.2s; }
+        .switch-auth a:hover { text-decoration: underline; color: #005bb5; }
 
         .feature-hint {
-            background: #f5f5f7;
-            border-radius: 12px;
-            padding: 16px;
-            margin-top: 24px;
+            background: #f5f5f7; border-radius: 12px; padding: 16px; margin-top: 24px;
+            transition: transform 0.3s ease;
         }
+        .feature-hint:hover { transform: translateY(-2px); }
 
-        .feature-hint h3 {
-            font-size: 15px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        .feature-hint h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .feature-hint p { font-size: 14px; color: #86868b; line-height: 1.4; }
 
-        .feature-hint p {
-            font-size: 14px;
-            color: #86868b;
-            line-height: 1.4;
-        }
-
-        /* --- BUTTON LOADING STATE STYLES --- */
+        /* Loading States */
+        .is-loading { color: transparent !important; pointer-events: none; opacity: 0.9; }
+        .is-loading i, .is-loading svg { visibility: hidden; }
         
-        /* 1. Hide the text/icons inside the button */
-        .is-loading {
-            color: transparent !important;
-            pointer-events: none; /* Prevent clicking again */
-            opacity: 0.9;
-        }
-
-        .is-loading i {
-            visibility: hidden;
-        }
-
-        /* 2. Create the spinner using ::after pseudo-element */
         .is-loading::after {
-            content: "";
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            top: 50%;
-            left: 50%;
-            margin-top: -10px; /* Half of height to center vertically */
-            margin-left: -10px; /* Half of width to center horizontally */
-            border: 2px solid #ffffff;
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            content: ""; position: absolute; width: 20px; height: 20px;
+            top: 50%; left: 50%; margin-top: -10px; margin-left: -10px;
+            border: 2px solid #ffffff; border-top-color: transparent;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
         }
+        .social-btn.is-loading::after { border-color: #0071e3; border-top-color: transparent; }
 
-        /* 3. Social buttons need a dark spinner because they have white background */
-        .social-btn.is-loading::after {
-            border-color: #0071e3;
-            border-top-color: transparent;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         @media (max-width: 480px) {
             .card { padding: 40px 24px; border-radius: 16px; }
@@ -251,7 +128,6 @@
 <body>
 
     <div class="card">
-
         <div class="logo">
             <i data-lucide="folder-code" class="logo-icon"></i>
             <span>DevFolio</span>
@@ -260,9 +136,7 @@
         <h1>{{ "Sign In" if mode == 'login' else "Create Account" }}</h1>
 
         <p class="subtitle">
-            {{ "Enter your username and password to access your studio."
-               if mode == 'login'
-               else "Create your account to start building your portfolio." }}
+            {{ "Enter your username and password to access your studio." if mode == 'login' else "Create your account to start building your portfolio." }}
         </p>
 
         {% with messages = get_flashed_messages() %}
@@ -310,42 +184,25 @@
                 <i data-lucide="zap" style="width: 16px; height: 16px; color: #0071e3;"></i>
                 {{ "Everything you need" if mode == 'login' else "Get started in minutes" }}
             </h3>
-
             <p>
-                {{ "Manage your portfolio and track visitors."
-                   if mode == 'login'
-                   else "Build beautiful portfolios with ease." }}
+                {{ "Manage your portfolio and track visitors." if mode == 'login' else "Build beautiful portfolios with ease." }}
             </p>
         </div>
-
     </div>
 
     <script>
         lucide.createIcons();
-        
         document.addEventListener('DOMContentLoaded', function() {
             const authForm = document.querySelector('.auth-form');
-            
-            // Handle Main Login Button
             if (authForm) {
                 authForm.addEventListener('submit', function(e) {
-                    // Don't prevent default, we want the form to submit!
                     const btn = document.getElementById('submitBtn');
-                    
-                    // Add loading class to button
                     btn.classList.add('is-loading');
-                    
-                    // We don't remove the class because the page will reload 
-                    // or redirect upon success. If validation fails on server,
-                    // the page reloads anyway.
                 });
             }
-            
-            // Handle Social Login Buttons
             const socialButtons = document.querySelectorAll('.social-btn');
             socialButtons.forEach(button => {
                 button.addEventListener('click', function(e) {
-                    // Add loading class to the clicked button
                     this.classList.add('is-loading');
                 });
             });

@@ -4,176 +4,102 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
-
-      <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
-
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* BASE STYLES */
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
-            background: #f5f5f7; 
-            margin: 0; 
-            padding: 40px; 
-            color: #1d1d1f; 
-        }
-        .header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 40px; 
-        }
-        h1 { 
-            font-weight: 700; 
-            letter-spacing: -1px; 
-            font-size: 28px;
+        /* --- ANIMATIONS --- */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
-        /* Buttons */
-        .btn { 
-            background: #0071e3; 
-            color: white; 
-            text-decoration: none; 
-            padding: 12px 24px; 
-            border-radius: 50px; 
-            font-weight: 500; 
-            font-size: 14px; 
-            transition: 0.2s; 
-            display: inline-flex; 
-            align-items: center; 
-            white-space: nowrap;
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .btn:hover { 
-            background: #0077ED; 
-            transform: translateY(-1px);
+
+        @keyframes cardEntrance {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
         }
-        .btn-outline { 
-            background: transparent; 
-            color: #1d1d1f; 
-            border: 1px solid #d2d2d7; 
-        }
+
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f5f7; margin: 0; padding: 40px; color: #1d1d1f; }
         
-        /* Grid Layout */
-        .grid { 
-            /* MAXIMIZED CARD WIDTH: Increased min width to 400px. 
-               This ensures fewer cards per row, making them span wider.*/
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); 
-            gap: 20px; 
-        }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; animation: fadeInDown 0.6s ease-out; }
+        h1 { font-weight: 700; letter-spacing: -1px; font-size: 28px; }
         
-        /* Card Styles */
+        .btn { background: #0071e3; color: white; text-decoration: none; padding: 12px 24px; border-radius: 50px; font-weight: 500; font-size: 14px; transition: all 0.2s ease; display: inline-flex; align-items: center; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,113,227,0.2); }
+        .btn:hover { background: #0077ED; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,113,227,0.3); }
+        .btn:active { transform: translateY(0); }
+        
+        .btn-outline { background: transparent; color: #1d1d1f; border: 1px solid #d2d2d7; box-shadow: none; }
+        .btn-outline:hover { background: #e5e5e7; transform: translateY(-1px); border-color: #b8b8bd; box-shadow: none; }
+
+        .quick-setup-section {
+            background: white; border-radius: 20px; padding: 30px; margin-bottom: 30px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            animation: fadeInUp 0.8s ease-out 0.1s backwards;
+        }
+
+        .step-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .step-card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px; }
+        
         .card { 
-            background: white; 
-            border-radius: 20px; 
-            padding: 25px; 
+            background: white; border-radius: 20px; padding: 25px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.06); 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: space-between;
-            transition: transform 0.2s;
+            display: flex; flex-direction: column; justify-content: space-between;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            animation: cardEntrance 0.6s ease-out backwards;
         }
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.08); 
-        }
+        
+        /* Staggered Delay for Cards (up to 10) */
+        .card:nth-child(1) { animation-delay: 0.2s; }
+        .card:nth-child(2) { animation-delay: 0.3s; }
+        .card:nth-child(3) { animation-delay: 0.4s; }
+        .card:nth-child(4) { animation-delay: 0.5s; }
+        .card:nth-child(5) { animation-delay: 0.6s; }
+        
+        .card:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(0,0,0,0.1); }
 
-        .card-content { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: flex-start;
-            margin-bottom: 25px; 
-        }
-        .card-content h2 { 
-            margin: 0 0 5px 0; 
-            font-size: 20px; 
-            font-weight: 600; 
-        }
+        .card-content { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
+        .card-content h2 { margin: 0 0 5px 0; font-size: 20px; font-weight: 600; }
 
-        /* Action Buttons */
-        .actions { 
-            display: flex; 
-            gap: 8px; 
-        }
+        .actions { display: flex; gap: 8px; }
         .action-btn { 
-            flex: 1 1 0%; /* Ensure all buttons take equal width to prevent overflow */
-            text-align: center; 
-            padding: 8px 6px; 
-            border-radius: 12px; 
-            text-decoration: none; 
-            font-size: 12px;
-            font-weight: 600;
-            transition: background-color 0.2s, color 0.2s;
-            display: inline-flex; 
-            align-items: center;
-            justify-content: center;
-            white-space: nowrap;
+            flex: 1 1 0%; text-align: center; padding: 8px 6px; border-radius: 12px; 
+            text-decoration: none; font-size: 12px; font-weight: 600; 
+            transition: all 0.2s ease; display: inline-flex; 
+            align-items: center; justify-content: center; white-space: nowrap;
         }
-        /* Icon spacing for tighter fit */
-        .action-btn i {
-             margin-right:4px;
-        }
+        .action-btn i { margin-right:4px; transition: transform 0.2s; }
+        .action-btn:hover i { transform: scale(1.2); }
 
-        /* Themed Button Colors */
-        .actions a:nth-child(1) { background: #e7f0ff; color: #0071e3; } /* Preview (Blue) */
-        .actions a:nth-child(2) { background: #fff7e6; color: #f5a623; } /* Edit (Orange) */
-        .actions a:nth-child(3) { background: #e6ffec; color: #00c439; } /* Download (Green) */
-        .actions .delete { background: #ffebeb; color: #ff3b30; } /* Delete (Red) */
+        .actions a:nth-child(1) { background: #e7f0ff; color: #0071e3; }
+        .actions a:nth-child(2) { background: #fff7e6; color: #f5a623; }
+        .actions a:nth-child(3) { background: #e6ffec; color: #00c439; }
+        .actions .delete { background: #ffebeb; color: #ff3b30; }
 
-        .actions a:nth-child(1):hover { background: #d0e0ff; }
-        .actions a:nth-child(2):hover { background: #fff0cc; }
-        .actions a:nth-child(3):hover { background: #ccffe0; }
-        .actions .delete:hover { background: #ffd0d0; }
+        .actions a:nth-child(1):hover { background: #d0e0ff; transform: translateY(-2px); }
+        .actions a:nth-child(2):hover { background: #fff0cc; transform: translateY(-2px); }
+        .actions a:nth-child(3):hover { background: #ccffe0; transform: translateY(-2px); }
+        .actions .delete:hover { background: #ffd0d0; transform: translateY(-2px); }
         
         .no-portfolios { 
-            text-align: center; 
-            padding: 50px; 
-            color: #86868b; 
-            background: white; 
-            border-radius: 20px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
-            grid-column: 1 / -1;
+            text-align: center; padding: 50px; color: #86868b; 
+            background: white; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            grid-column: 1 / -1; animation: fadeInUp 0.8s ease-out;
         }
 
-        /* Mobile Responsive Styles */
         @media (max-width: 768px) {
-            body {
-                padding: 20px 15px;
-            }
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-                margin-bottom: 30px;
-            }
-            .header > div {
-                width: 100%;
-                display: flex;
-                justify-content: space-between;
-                gap: 10px;
-            }
-            .btn {
-                padding: 10px 18px;
-                font-size: 13px;
-                flex-grow: 1;
-                justify-content: center;
-            }
-            h1 {
-                font-size: 24px;
-            }
-            .grid {
-                /* On mobile, cards should take full width */
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-            .actions {
-                flex-direction: column; /* Stack action buttons vertically */
-                gap: 8px;
-            }
-            .action-btn {
-                flex: none; /* Disable flex-grow when stacked */
-                width: 100%;
-            }
+            body { padding: 20px 15px; }
+            .header { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .header > div { width: 100%; display: flex; justify-content: space-between; gap: 10px; }
+            .btn { flex-grow: 1; justify-content: center; }
+            .grid { grid-template-columns: 1fr; gap: 15px; }
+            .actions { flex-direction: column; }
+            .action-btn { width: 100%; }
         }
     </style>
 </head>
@@ -188,77 +114,48 @@
             <a href="{{ url_for('logout') }}" class="btn btn-outline">Log Out</a>
         </div>
     </div>
-    <!-- Quick Setup Section -->
-<div class="quick-setup-section" style="background: white; border-radius: 20px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.06);">
-    <h2 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 600;">Quick Setup</h2>
-    <p style="color: #86868b; margin: 0 0 20px 0; font-size: 16px; line-height: 1.5;">
-        Fill in your info, add a few projects, then generate your portfolio. It takes less than five minutes.
-    </p>
-    <div style="height: 1px; background: #e5e5e7; margin: 20px 0;"></div>
-    
-    <!-- Step-by-Step Guide -->
-    <div class="steps-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: 20px; margin-top: 25px;">
-        <div class="step-card" style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #0071e3;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <div style="width: 24px; height: 24px; background: #0071e3; color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">1</div>
-                <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Personal Details</h3>
-            </div>
-            <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.4;">Add your name, bio, and your links.</p>
-        </div>
+
+    <div class="quick-setup-section">
+        <h2 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 600;">Quick Setup</h2>
+        <p style="color: #86868b; margin: 0 0 20px 0; font-size: 16px; line-height: 1.5;">
+            Fill in your info, add a few projects, then generate your portfolio. It takes less than five minutes.
+        </p>
+        <div style="height: 1px; background: #e5e5e7; margin: 20px 0;"></div>
         
-        <div class="step-card" style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #00c439;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <div style="width: 24px; height: 24px; background: #00c439; color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">2</div>
-                <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Projects</h3>
+        <div class="steps-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: 20px; margin-top: 25px;">
+            <div class="step-card" style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #0071e3;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 24px; height: 24px; background: #0071e3; color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">1</div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Personal Details</h3>
+                </div>
+                <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.4;">Add your name, bio, and your links.</p>
             </div>
-            <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.4;">List the projects you want to show. Add titles, descriptions, and links.</p>
-        </div>
-        
-        <div class="step-card" style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #f5a623;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <div style="width: 24px; height: 24px; background: #f5a623; color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">3</div>
-                <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Skills</h3>
+            
+            <div class="step-card" style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #00c439;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 24px; height: 24px; background: #00c439; color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">2</div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Projects</h3>
+                </div>
+                <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.4;">List the projects you want to show.</p>
             </div>
-            <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.4;">Add your tech stack.</p>
-        </div>
-        
-        <div class="step-card" style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #ff3b30;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <div style="width: 24px; height: 24px; background: #ff3b30; color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">4</div>
-                <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Generate</h3>
+            
+            <div class="step-card" style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #f5a623;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 24px; height: 24px; background: #f5a623; color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">3</div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Skills</h3>
+                </div>
+                <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.4;">Add your tech stack.</p>
             </div>
-            <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.4;">Click Generate Portfolio to get your final page.</p>
+            
+            <div class="step-card" style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #ff3b30;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 24px; height: 24px; background: #ff3b30; color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">4</div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Generate</h3>
+                </div>
+                <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.4;">Click Generate to get your site.</p>
+            </div>
         </div>
     </div>
-</div>
-
-<style>
-@media (max-width: 768px) {
-    .quick-setup-section {
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-    
-    .steps-grid {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-    
-    .step-card {
-        padding: 15px !important;
-    }
-}
-
-@media (max-width: 480px) {
-    .quick-setup-section {
-        padding: 15px;
-    }
-    
-    .step-card {
-        padding: 12px !important;
-    }
-}
-</style>
 
     <div class="grid">
         {% for p in portfolios %}
@@ -268,7 +165,6 @@
                     <div>
                         <h2>{{ p.name }}</h2>
                         <div style="display:flex; align-items:center; gap:5px; margin-top:5px;">
-                            <!-- Theme Indicator Dots -->
                             {% if p.theme_preset == 'default' %}<span style="width:8px; height:8px; background:#0071e3; border-radius:50%;"></span>{% endif %}
                             {% if p.theme_preset == 'cyberpunk' %}<span style="width:8px; height:8px; background:#00ff41; border-radius:50%;"></span>{% endif %}
                             {% if p.theme_preset == 'midnight' %}<span style="width:8px; height:8px; background:#38bdf8; border-radius:50%;"></span>{% endif %}
@@ -280,29 +176,16 @@
                     </div>
                     
                     <div style="text-align:center;">
-                        <!-- QR code image is generated dynamically on the Flask side -->
-                        <img src="{{ url_for('qr_code', p_id=p.id) }}" style="width:60px; height:60px; border-radius:8px; border:1px solid #e5e5e5;">
+                        <img src="{{ url_for('qr_code', p_id=p.id) }}" style="width:60px; height:60px; border-radius:8px; border:1px solid #e5e5e5; transition: transform 0.2s ease;">
                     </div>
                 </div>
             </div>
             
             <div class="actions">
-                <a href="{{ url_for('preview', p_id=p.id) }}" class="action-btn">
-                    <i data-lucide="eye" style="width:16px; height:16px;"></i>
-                    Preview
-                </a>
-                <a href="{{ url_for('edit', p_id=p.id) }}" class="action-btn edit">
-                    <i data-lucide="edit-2" style="width:16px; height:16px;"></i>
-                    Edit
-                </a>
-                <a href="{{ url_for('download', p_id=p.id) }}" class="action-btn">
-                    <i data-lucide="download" style="width:16px; height:16px;"></i>
-                    Download
-                </a>
-                <a href="{{ url_for('delete', p_id=p.id) }}" class="action-btn delete" onclick="return confirm('Are you sure you want to delete this portfolio?')">
-                    <i data-lucide="trash-2" style="width:16px; height:16px;"></i>
-                    Delete
-                </a>
+                <a href="{{ url_for('preview', p_id=p.id) }}" class="action-btn"><i data-lucide="eye" style="width:16px; height:16px;"></i> Preview</a>
+                <a href="{{ url_for('edit', p_id=p.id) }}" class="action-btn edit"><i data-lucide="edit-2" style="width:16px; height:16px;"></i> Edit</a>
+                <a href="{{ url_for('download', p_id=p.id) }}" class="action-btn"><i data-lucide="download" style="width:16px; height:16px;"></i> Download</a>
+                <a href="{{ url_for('delete', p_id=p.id) }}" class="action-btn delete" onclick="return confirm('Are you sure?')"><i data-lucide="trash-2" style="width:16px; height:16px;"></i> Delete</a>
             </div>
         </div>
         {% else %}
@@ -312,102 +195,6 @@
         {% endfor %}
     </div>
 
-    <script>
-        // Initialize Lucide Icons
-        lucide.createIcons();
-    </script>
-
-    <!-- Feedback Button -->
-<div class="feedback-widget">
-    <button class="feedback-btn" style="position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; background: #0071e3; color: white; border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 999; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: all 0.3s ease;">
-        ❔
-    </button>
-    
-    <div class="feedback-modal" style="position: fixed; bottom: 100px; right: 30px; width: 350px; background: white; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); padding: 0; z-index: 1000; display: none;">
-        <div style="padding: 25px; border-bottom: 1px solid #e5e5e7;">
-            <h4 style="margin: 0 0 8px 0; font-size: 18px;">Send Feedback</h4>
-            <p style="color: #86868b; margin: 0; font-size: 14px;">Found a bug or want to request a feature?</p>
-        </div>
-        
-        <form class="feedback-form" style="padding: 25px;">
-            <input type="text" name="name" placeholder="Name (optional)" style="width: 100%; padding: 12px; border: 1px solid #d2d2d7; border-radius: 10px; margin-bottom: 15px; font-family: inherit;">
-            <input type="email" name="email" placeholder="Email (optional)" style="width: 100%; padding: 12px; border: 1px solid #d2d2d7; border-radius: 10px; margin-bottom: 15px; font-family: inherit;">
-            <textarea name="message" placeholder="Your message..." rows="4" style="width: 100%; padding: 12px; border: 1px solid #d2d2d7; border-radius: 10px; margin-bottom: 15px; font-family: inherit; resize: vertical;" required></textarea>
-            
-            <div style="display: flex; gap: 10px;">
-                <button type="button" class="cancel-feedback" style="flex: 1; padding: 12px; border: 1px solid #d2d2d7; border-radius: 10px; background: white; cursor: pointer; font-family: inherit;">Cancel</button>
-                <button type="submit" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: #0071e3; color: white; cursor: pointer; font-family: inherit; font-weight: 600;">Send</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const feedbackBtn = document.querySelector('.feedback-btn');
-    const feedbackModal = document.querySelector('.feedback-modal');
-    const cancelFeedback = document.querySelector('.cancel-feedback');
-    const feedbackForm = document.querySelector('.feedback-form');
-    
-    if (feedbackBtn) {
-        feedbackBtn.addEventListener('click', () => {
-            feedbackModal.style.display = feedbackModal.style.display === 'block' ? 'none' : 'block';
-        });
-        
-        cancelFeedback.addEventListener('click', () => {
-            feedbackModal.style.display = 'none';
-        });
-        
-        feedbackForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            // Here you would typically send the feedback to your server
-            alert('Thanks for your feedback!');
-            feedbackModal.style.display = 'none';
-            feedbackForm.reset();
-        });
-        
-        // Close modal when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!feedbackModal.contains(e.target) && e.target !== feedbackBtn) {
-                feedbackModal.style.display = 'none';
-            }
-        });
-    }
-});
-</script>
-
-<style>
-@media (max-width: 768px) {
-    .feedback-btn {
-        bottom: 20px !important;
-        right: 20px !important;
-        width: 50px !important;
-        height: 50px !important;
-        font-size: 20px !important;
-    }
-    
-    .feedback-modal {
-        bottom: 80px !important;
-        right: 20px !important;
-        left: 20px !important;
-        width: auto !important;
-    }
-}
-
-@media (max-width: 480px) {
-    .feedback-btn {
-        bottom: 15px !important;
-        right: 15px !important;
-        width: 45px !important;
-        height: 45px !important;
-    }
-    
-    .feedback-modal {
-        bottom: 70px !important;
-        right: 15px !important;
-        left: 15px !important;
-    }
-}
-</style>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

@@ -5,10 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ p.name }} - Portfolio</title>
     <meta name="description" content="{{ p.bio[:150] }}">
-
-   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
+        /* --- CORE ANIMATIONS --- */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes slideInLeft { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        @keyframes rotate-in { from { transform: rotate(-180deg) scale(0); } to { transform: rotate(0) scale(1); } }
+
         :root { --bg: #fff; --text: #1d1d1f; --text-sec: #86868b; --card: #f5f5f7; --border: #e5e5e5; --primary: #0071e3; --radius: 24px; --font: -apple-system, sans-serif; --bg-pat: none; }
 
         /* THEMES */
@@ -19,113 +28,134 @@
         [data-theme="cartoon"] { --bg:#fffacd; --bg-pat:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(255,192,203,0.1) 10px,rgba(255,192,203,0.1) 20px); --text:#2d2d2d; --text-sec:#666; --card:#fff; --border:#ffb6c1; --primary:#ff1493; --radius:30px; --font:'Comic Sans MS', cursive; }
         [data-theme="elegant"] { --bg:#faf8f3; --text:#2c2c2c; --text-sec:#8b8b8b; --card:#ffffff; --border:#d4af37; --primary:#d4af37; --radius:0px; --font:'Playfair Display', serif; }
         [data-theme="nature"] { --bg:#f0f7f4; --bg-pat:radial-gradient(circle at 20% 50%, rgba(76,175,80,0.05) 0%, transparent 50%),radial-gradient(circle at 80% 80%, rgba(139,195,74,0.05) 0%, transparent 50%); --text:#1b5e20; --text-sec:#558b2f; --card:#ffffff; --border:#a5d6a7; --primary:#4caf50; --radius:20px; --font:'Verdana', sans-serif; }
-        
-        /* Custom Theme */
-        [data-theme="custom"] {
-            --bg: #fff; --text: #1d1d1f; --text-sec: #86868b; --card: #f5f5f7; --border: #e5e5e5; --radius: 24px; --font: 'Inter', sans-serif;
-            --primary: {{ p.custom_accent_color if p.custom_accent_color else '#0071e3' }}; 
-        }
+        [data-theme="custom"] { --bg: #fff; --text: #1d1d1f; --text-sec: #86868b; --card: #f5f5f7; --border: #e5e5e5; --radius: 24px; --font: 'Inter', sans-serif; --primary: {{ p.custom_accent_color if p.custom_accent_color else '#0071e3' }}; }
 
-        body { margin:0; padding:0; font-family:var(--font); background-color:var(--bg); background-image:var(--bg-pat); background-size:var(--bg-size, auto); color:var(--text); line-height:1.6; padding-bottom:100px; overflow-x: hidden; }
+        body { margin:0; padding:0; font-family:var(--font); background-color:var(--bg); background-image:var(--bg-pat); background-size:var(--bg-size, auto); color:var(--text); line-height:1.6; padding-bottom:100px; overflow-x: hidden; opacity: 0; animation: fadeIn 0.5s ease-out forwards; transition: background-color 0.5s ease, color 0.5s ease; }
         .wrapper { max-width:800px; margin:0 auto; padding:0 20px; }
         
-        /* Back Button */
         .back-btn {
-            position: fixed;
-            top: 30px;
-            left: 30px;
-            background: var(--card);
-            color: var(--text);
-            padding: 10px 20px;
-            border-radius: 50px;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            border: 1px solid var(--border);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            transition: all 0.2s ease;
-            z-index: 998;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
+            position: fixed; top: 30px; left: 30px; background: var(--card); color: var(--text); padding: 10px 20px; border-radius: 50px; text-decoration: none; font-size: 14px; font-weight: 500; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 998;
+            animation: slideInLeft 0.8s ease-out 1s backwards;
         }
-        .back-btn:hover {
-            background: var(--primary);
-            color: var(--bg);
-            border-color: var(--primary);
-            transform: translateX(-3px);
-        }
-        [data-theme="cyberpunk"] .back-btn { background: var(--card); border-color: var(--primary); }
-        [data-theme="cyberpunk"] .back-btn:hover { background: var(--primary); color: black; }
+        .back-btn:hover { transform: scale(1.05) translateX(5px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
         
-        .hero { padding:100px 0 60px 0; }
-        .avatar { width:120px; height:120px; border-radius:50%; object-fit:cover; margin-bottom:20px; border:4px solid var(--card); box-shadow:0 10px 30px rgba(0,0,0,0.2); }
-        h1 { font-size:3.5rem; margin:0 0 10px 0; letter-spacing:-1px; line-height:1.1; word-wrap: break-word; }
-        .role { color:var(--primary); font-size:1.2rem; font-weight:bold; text-transform:uppercase; letter-spacing:1px; display:block; }
-        .bio { color:var(--text-sec); font-size:1.1rem; margin-top:20px; max-width:600px; }
+        .hero { padding:100px 0 60px 0; text-align: left; }
+        .avatar { 
+            width:120px; height:120px; border-radius:50%; object-fit:cover; margin-bottom:20px; 
+            border:4px solid var(--card); box-shadow:0 10px 30px rgba(0,0,0,0.2); 
+            animation: scaleIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s backwards, float 6s ease-in-out infinite;
+        }
+        h1 { 
+            font-size:3.5rem; margin:0 0 10px 0; letter-spacing:-1px; line-height:1.1; 
+            animation: fadeInUp 0.8s ease-out 0.3s backwards;
+        }
+        .role { 
+            color:var(--primary); font-size:1.2rem; font-weight:bold; text-transform:uppercase; letter-spacing:1px; display:block; 
+            animation: fadeInUp 0.8s ease-out 0.4s backwards;
+        }
+        .bio { 
+            color:var(--text-sec); font-size:1.1rem; margin-top:20px; max-width:600px; 
+            animation: fadeInUp 0.8s ease-out 0.5s backwards;
+        }
 
         .skills { margin-top:30px; display:flex; flex-wrap:wrap; gap:10px; }
-        .pill { background:var(--card); border:1px solid var(--border); padding:6px 14px; border-radius:50px; font-size:0.9rem; color:var(--text); }
-        [data-theme="cyberpunk"] .pill { border-color:var(--primary); color:var(--primary); background:transparent; }
-        [data-theme="cartoon"] .pill { border:3px solid var(--border); font-weight:bold; transform:rotate(-2deg); }
-        [data-theme="cartoon"] .pill:nth-child(even) { transform:rotate(2deg); }
+        .pill { 
+            background:var(--card); border:1px solid var(--border); padding:6px 14px; border-radius:50px; 
+            font-size:0.9rem; color:var(--text); transition: all 0.2s;
+            animation: scaleIn 0.5s ease-out backwards;
+        }
+        .pill:hover { transform: translateY(-3px); border-color: var(--primary); }
+        .pill:nth-child(1) { animation-delay: 0.6s; }
+        .pill:nth-child(2) { animation-delay: 0.65s; }
+        .pill:nth-child(3) { animation-delay: 0.7s; }
+        .pill:nth-child(4) { animation-delay: 0.75s; }
+        .pill:nth-child(5) { animation-delay: 0.8s; }
 
-        .sec-title { margin:80px 0 30px 0; font-size:1.5rem; font-weight:700; border-bottom:2px solid var(--border); padding-bottom:10px; display:inline-block; }
-        [data-theme="elegant"] .sec-title { border-bottom:3px double var(--border); letter-spacing:2px; }
+        .sec-title { 
+            margin:80px 0 30px 0; font-size:1.5rem; font-weight:700; border-bottom:2px solid var(--border); padding-bottom:10px; display:inline-block; 
+            animation: fadeInUp 0.8s ease-out;
+        }
         
-        .job { margin-bottom:40px; padding-left:20px; border-left:2px solid var(--border); position:relative; }
-        .job::before { content:''; position:absolute; left:-6px; top:5px; width:10px; height:10px; background:var(--primary); border-radius:50%; }
-        [data-theme="cartoon"] .job::before { width:15px; height:15px; border:3px solid var(--primary); background:var(--bg); }
+        .job { 
+            margin-bottom:40px; padding-left:20px; border-left:2px solid var(--border); position:relative; 
+            opacity: 0; animation: slideInLeft 0.8s ease-out forwards;
+        }
+        .job:nth-of-type(1) { animation-delay: 0.8s; }
+        .job:nth-of-type(2) { animation-delay: 1.0s; }
+        
+        .job::before { content:''; position:absolute; left:-6px; top:5px; width:10px; height:10px; background:var(--primary); border-radius:50%; animation: pulse 2s infinite; }
         .job h3 { margin:0; font-size:1.2rem; }
         .job span { font-size:0.9rem; color:var(--primary); font-weight:bold; display: block; margin-bottom: 5px; }
         .job p { margin-top:5px; color:var(--text-sec); }
 
         .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px; }
-        .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:25px; transition:transform 0.2s; display:flex; flex-direction:column; word-wrap: break-word; }
-        .card:hover { transform:translateY(-5px); border-color:var(--primary); }
-        [data-theme="cartoon"] .card { box-shadow:5px 5px 0px var(--border); }
-        [data-theme="cartoon"] .card:hover { transform:translateY(-5px) rotate(-1deg); box-shadow:8px 8px 0px var(--primary); }
-        [data-theme="elegant"] .card { box-shadow:0 4px 20px rgba(212,175,55,0.1); }
+        .card { 
+            background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:25px; 
+            display:flex; flex-direction:column; transition: all 0.3s ease; opacity: 0;
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+        .card:nth-child(1) { animation-delay: 1.2s; }
+        .card:nth-child(2) { animation-delay: 1.4s; }
+        .card:nth-child(3) { animation-delay: 1.6s; }
+
+        .card:hover { transform:translateY(-8px) scale(1.01); border-color:var(--primary); box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         
         .card h3 { margin:10px 0; }
-        .card-link { margin-top:auto; text-decoration:none; color:var(--bg); background:var(--text); padding:10px 20px; border-radius:50px; align-self:flex-start; font-weight:bold; font-size:0.9rem; }
-        [data-theme="cyberpunk"] .card-link { background:var(--primary); color:black; }
-        [data-theme="cartoon"] .card-link { border:3px solid var(--text); background:var(--primary); color:white; transform:rotate(-2deg); }
+        .card-link { margin-top:auto; text-decoration:none; color:var(--bg); background:var(--text); padding:10px 20px; border-radius:50px; align-self:flex-start; font-weight:bold; font-size:0.9rem; transition: transform 0.2s; }
+        .card-link:hover { transform: translateX(5px); }
 
-        .dl-btn { position:fixed; bottom:30px; right:30px; background:var(--primary); color:var(--bg); padding:15px 25px; border-radius:50px; text-decoration:none; font-weight:bold; box-shadow:0 10px 30px rgba(0,0,0,0.3); z-index:999; transition: transform 0.2s; }
-        .dl-btn:hover { transform: scale(1.05); }
-        [data-theme="cyberpunk"] .dl-btn { color:black; }
-        [data-theme="cartoon"] .dl-btn { border:4px solid var(--text); animation:bounce 2s infinite; }
+        .dl-btn { 
+            position:fixed; bottom:30px; right:30px; background:var(--primary); color:var(--bg); padding:15px 25px; border-radius:50px; text-decoration:none; font-weight:bold; box-shadow:0 10px 30px rgba(0,0,0,0.3); z-index:999; 
+            animation: fadeInUp 0.8s ease-out 2s backwards; transition: all 0.3s;
+        }
+        .dl-btn:hover { transform: scale(1.1); box-shadow: 0 15px 40px rgba(0,0,0,0.4); }
         
-        @keyframes bounce { 0%, 100% { transform:translateY(0); } 50% { transform:translateY(-10px); } }
-        
-        .resume-btn { display:inline-block; margin-top:20px; padding:10px 20px; border:1px solid var(--border); border-radius:50px; text-decoration:none; color:var(--text); font-weight:bold; }
-        .resume-btn:hover { background:var(--primary); color:var(--bg); border-color:var(--primary); }
+        .resume-btn { 
+            display:inline-block; margin-top:20px; padding:10px 20px; border:1px solid var(--border); border-radius:50px; text-decoration:none; color:var(--text); font-weight:bold; 
+            transition: all 0.3s;
+        }
+        .resume-btn:hover { background:var(--primary); color:var(--bg); border-color:var(--primary); transform: translateY(-2px); }
 
-        .footer { margin-top:80px; padding-top:40px; border-top:1px solid var(--border); display:flex; gap:20px; flex-wrap: wrap; }
-        .footer a { color:var(--text); text-decoration:none; opacity:0.7; }
+        .footer { 
+            margin-top:80px; padding-top:40px; border-top:1px solid var(--border); display:flex; gap:20px; flex-wrap: wrap; 
+            opacity: 0; animation: fadeIn 1s ease-out 1.5s forwards;
+        }
+        .footer a { color:var(--text); text-decoration:none; opacity:0.7; transition: opacity 0.2s; }
         .footer a:hover { opacity:1; color:var(--primary); }
 
-        input, textarea { width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); margin-bottom:15px; font-family:inherit; box-sizing:border-box; }
+        /* THEME FAB (Floating Action Button) */
+        .theme-fab {
+            position: fixed; bottom: 30px; right: 30px;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: var(--card); border: 2px solid var(--border);
+            color: var(--text); box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 1000;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: rotate-in 0.6s ease-out 1s backwards;
+        }
+        .theme-fab:hover { transform: scale(1.1) rotate(15deg); border-color: var(--primary); box-shadow: 0 12px 30px rgba(0,0,0,0.2); }
+        .theme-fab svg { width: 24px; height: 24px; }
 
-        /* Mobile Responsiveness */
         @media (max-width: 600px) {
             .back-btn { top: 20px; left: 20px; padding: 8px 16px; font-size: 13px; }
-            .hero { padding: 60px 0 40px 0; }
             h1 { font-size: 2.5rem; }
-            .role { font-size: 1rem; }
-            .bio { font-size: 1rem; }
-            .sec-title { margin: 50px 0 20px 0; font-size: 1.3rem; }
-            .grid { grid-template-columns: 1fr; }
-            .footer { flex-direction: column; gap: 15px; align-items: flex-start; }
-            .dl-btn { bottom: 20px; right: 20px; padding: 12px 20px; font-size: 0.85rem; }
+            .theme-fab { width: 48px; height: 48px; bottom: 20px; right: 20px; }
         }
     </style>
 </head>
 <body data-theme="{{ p.theme_preset }}">
 
 {% if preview %}
-<a href="{{ url_for('dashboard') }}" class="back-btn">← Dashboard</a>
+<a href="{{ url_for('dashboard') }}" class="back-btn">
+    <i data-lucide="arrow-left" style="width:14px;"></i> Dashboard
+</a>
+{% endif %}
+
+{% if p.id == 1 %}
+<button class="theme-fab" id="themeShuffleBtn" title="Shuffle Theme">
+    <i data-lucide="palette"></i>
+</button>
 {% endif %}
 
 <div class="wrapper">
@@ -134,7 +164,11 @@
         <h1>{{ p.name }}</h1>
         <span class="role">{{ p.role }}</span>
         <p class="bio">{{ p.bio }}</p>
-        {% if p.resume_data %}<a href="{{ p.resume_data }}" download="Resume.pdf" class="resume-btn">Download Resume ⬇</a>{% endif %}
+        {% if p.resume_data %}
+        <a href="{{ p.resume_data }}" download="Resume.pdf" class="resume-btn">
+            <i data-lucide="download" style="width:14px; vertical-align:middle; margin-right:5px;"></i> Download Resume
+        </a>
+        {% endif %}
         <div class="skills">{% for s in skills %}<span class="pill">{{ s }}</span>{% endfor %}</div>
     </div>
 
@@ -165,13 +199,15 @@
 
     <div class="sec-title">Get in Touch</div>
     {% if p.formspree_id %}
-    <form action="https://formspree.io/f/{{ p.formspree_id }}" method="POST" style="max-width:500px;">
-        <label style="font-size:0.9rem; font-weight:bold;">Email</label><input type="email" name="email" required>
-        <label style="font-size:0.9rem; font-weight:bold;">Message</label><textarea name="message" rows="4" required></textarea>
-        <button type="submit" style="background:var(--primary); color:var(--bg); padding:12px 24px; border:none; border-radius:50px; font-weight:bold; cursor:pointer;">Send &rarr;</button>
+    <form action="https://formspree.io/f/{{ p.formspree_id }}" method="POST" style="max-width:500px; animation: fadeInUp 0.8s ease-out forwards; opacity: 0; animation-delay: 1.8s;">
+        <input type="email" name="email" required placeholder="Your email" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); margin-bottom:15px; font-family:inherit;">
+        <textarea name="message" rows="4" required placeholder="Message" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); margin-bottom:15px; font-family:inherit;"></textarea>
+        <button type="submit" style="background:var(--primary); color:var(--bg); padding:12px 24px; border:none; border-radius:50px; font-weight:bold; cursor:pointer; transition: transform 0.2s;">Send &rarr;</button>
     </form>
     {% else %}
-    <p>Email me at <a href="mailto:{{ p.email }}" style="color:var(--primary);">{{ p.email }}</a></p>
+    <p style="animation: fadeInUp 0.8s ease-out forwards; opacity: 0; animation-delay: 1.8s;">
+        Email me at <a href="mailto:{{ p.email }}" style="color:var(--primary);">{{ p.email }}</a>
+    </p>
     {% endif %}
 
     <div class="footer">
@@ -181,8 +217,39 @@
 </div>
 
 {% if preview %}
-<a href="{{ url_for('download', p_id=p.id) }}" class="dl-btn">Download Site ⬇</a>
+<a href="{{ url_for('download', p_id=p.id) }}" class="dl-btn">
+    <i data-lucide="download" style="width:16px; vertical-align:middle;"></i> Download Site
+</a>
 {% endif %}
 
+<script>
+    lucide.createIcons();
+
+    // Theme Shuffler Logic
+    const shuffleBtn = document.getElementById('themeShuffleBtn');
+    if (shuffleBtn) {
+        const themes = ['cupertino', 'cyberpunk', 'midnight', 'sunset', 'professional', 'cartoon', 'elegant', 'nature'];
+        
+        shuffleBtn.addEventListener('click', () => {
+            const body = document.body;
+            let currentTheme = body.getAttribute('data-theme');
+            let currentIndex = themes.indexOf(currentTheme);
+            
+            // Calculate next theme index
+            let nextIndex = (currentIndex + 1) % themes.length;
+            let nextTheme = themes[nextIndex];
+            
+            // Apply new theme
+            body.setAttribute('data-theme', nextTheme);
+            
+            // Add spin animation to icon
+            const icon = shuffleBtn.querySelector('svg');
+            icon.animate([
+                { transform: 'rotate(0deg)' },
+                { transform: 'rotate(360deg)' }
+            ], { duration: 500, easing: 'ease-in-out' });
+        });
+    }
+</script>
 </body>
 </html>

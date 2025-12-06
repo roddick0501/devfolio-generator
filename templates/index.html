@@ -8,51 +8,56 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        /* --- ANIMATIONS --- */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 4px 20px rgba(0,113,227,0.2); }
+            50% { box-shadow: 0 4px 30px rgba(0,113,227,0.5); }
+            100% { box-shadow: 0 4px 20px rgba(0,113,227,0.2); }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             background: #f5f5f7;
             color: #1d1d1f;
             line-height: 1.6;
+            overflow-x: hidden; /* Prevent horizontal scroll from animations */
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
 
         /* Header */
-        header {
-            padding: 30px 0 20px 0;
-            text-align: center;
+        header { 
+            padding: 30px 0 20px 0; 
+            text-align: center; 
+            animation: fadeInUp 0.8s ease-out; 
         }
 
         .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 40px;
-            font-size: 24px;
-            font-weight: 700;
-            color: #1d1d1f;
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            margin-bottom: 40px; font-size: 24px; font-weight: 700; color: #1d1d1f;
+            transition: transform 0.3s ease;
         }
+        .logo:hover { transform: scale(1.05); }
 
-        .logo-icon {
-            width: 32px;
-            height: 32px;
-            color: #0071e3;
-        }
+        .logo-icon { width: 32px; height: 32px; color: #0071e3; }
 
-        .hero {
-            text-align: center;
-            padding: 40px 0 60px 0;
+        .hero { 
+            text-align: center; 
+            padding: 40px 0 60px 0; 
+            animation: fadeInUp 1s ease-out 0.2s backwards; /* Staggered */
         }
 
         .hero h1 {
@@ -61,6 +66,9 @@
             margin-bottom: 20px;
             letter-spacing: -1px;
             line-height: 1.1;
+            background: linear-gradient(135deg, #1d1d1f 0%, #434344 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .hero p {
@@ -68,48 +76,42 @@
             color: #86868b;
             margin-bottom: 40px;
             max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
+            margin-left: auto; margin-right: auto;
         }
 
         .cta-buttons {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 40px;
-            flex-wrap: wrap;
+            display: flex; gap: 16px; justify-content: center; align-items: center;
+            margin-bottom: 40px; flex-wrap: wrap;
         }
 
         .btn-primary {
-            background: #0071e3;
-            color: white;
-            padding: 16px 32px;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 17px;
-            transition: all 0.2s ease;
-            text-align: center;
-            min-width: 140px;
+            background: #0071e3; color: white; padding: 16px 32px;
+            border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 17px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center; min-width: 140px;
+            animation: pulse-glow 3s infinite;
         }
 
         .btn-primary:hover {
             background: #0077ed;
-            transform: translateY(-1px);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 10px 25px rgba(0,113,227,0.3);
         }
 
         .btn-secondary {
-            color: #0071e3;
-            text-decoration: none;
-            font-size: 16px;
-            transition: all 0.2s ease;
-            padding: 8px 0;
+            color: #0071e3; text-decoration: none; font-size: 16px;
+            transition: all 0.2s ease; padding: 8px 0;
+            position: relative;
         }
 
-        .btn-secondary:hover {
-            text-decoration: underline;
+        .btn-secondary::after {
+            content: '→';
+            display: inline-block;
+            margin-left: 5px;
+            transition: transform 0.2s ease;
         }
+
+        .btn-secondary:hover::after { transform: translateX(5px); }
 
         /* Features */
         .features {
@@ -120,95 +122,57 @@
         }
 
         .feature-card {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            text-align: center;
+            background: white; padding: 30px; border-radius: 20px; text-align: center;
             box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+        
+        /* Staggered animation for cards */
+        .feature-card:nth-child(1) { animation-delay: 0.4s; }
+        .feature-card:nth-child(2) { animation-delay: 0.6s; }
+        .feature-card:nth-child(3) { animation-delay: 0.8s; }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
         }
 
         .feature-icon {
-            width: 48px;
-            height: 48px;
-            margin-bottom: 20px;
-            color: #0071e3;
+            width: 48px; height: 48px; margin-bottom: 20px; color: #0071e3;
+            transition: transform 0.5s ease;
         }
 
-        .feature-card h3 {
-            font-size: 1.3rem;
-            margin-bottom: 12px;
-            font-weight: 600;
+        .feature-card:hover .feature-icon {
+            transform: scale(1.2) rotate(10deg);
         }
 
-        .feature-card p {
-            color: #86868b;
-            font-size: 16px;
-        }
+        .feature-card h3 { font-size: 1.3rem; margin-bottom: 12px; font-weight: 600; }
+        .feature-card p { color: #86868b; font-size: 16px; }
 
-        /* Footer */
         footer {
-            text-align: center;
-            padding: 40px 0;
-            color: #86868b;
-            border-top: 1px solid #e5e5e7;
-            margin-top: 40px;
+            text-align: center; padding: 40px 0; color: #86868b;
+            border-top: 1px solid #e5e5e7; margin-top: 40px;
+            animation: fadeInUp 1s ease-out 1s backwards;
         }
 
         @media (max-width: 768px) {
-            .container {
-                padding: 0 15px;
-            }
-            
-            header {
-                padding: 20px 0 10px 0;
-            }
-            
-            .logo {
-                margin-bottom: 30px;
-                font-size: 20px;
-            }
-            
-            .hero {
-                padding: 20px 0 40px 0;
-            }
-            
-            .cta-buttons {
-                flex-direction: column;
-                gap: 12px;
-            }
-            
-            .btn-primary {
-                width: 100%;
-                max-width: 280px;
-            }
-            
-            .features {
-                padding: 30px 0 40px 0;
-                gap: 15px;
-            }
-            
-            .feature-card {
-                padding: 25px 20px;
-            }
+            .container { padding: 0 15px; }
+            header { padding: 20px 0 10px 0; }
+            .logo { margin-bottom: 30px; font-size: 20px; }
+            .hero { padding: 20px 0 40px 0; }
+            .cta-buttons { flex-direction: column; gap: 12px; }
+            .btn-primary { width: 100%; max-width: 280px; }
+            .features { padding: 30px 0 40px 0; gap: 15px; }
+            .feature-card { padding: 25px 20px; }
         }
 
         @media (max-width: 480px) {
-            .hero h1 {
-                font-size: 2rem;
-            }
-            
-            .hero p {
-                font-size: 1rem;
-            }
-            
-            .feature-card {
-                padding: 20px 15px;
-            }
-            
-            .feature-icon {
-                width: 40px;
-                height: 40px;
-            }
+            .hero h1 { font-size: 2rem; }
+            .hero p { font-size: 1rem; }
+            .feature-card { padding: 20px 15px; }
+            .feature-icon { width: 40px; height: 40px; }
         }
     </style>
 </head>
@@ -227,7 +191,7 @@
             
             <div class="cta-buttons">
                 <a href="{{ url_for('register') }}" class="btn-primary">Get Started</a>
-                <a href="{{ url_for('sample') }}" class="btn-secondary">View sample portfolio →</a>
+                <a href="{{ url_for('sample') }}" class="btn-secondary">View sample portfolio</a>
             </div>
         </section>
 
